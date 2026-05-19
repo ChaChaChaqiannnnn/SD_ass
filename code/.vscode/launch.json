@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Debug ShopEase (Group 5)",
+            "request": "launch",
+            "mainClass": "com.shopease.Main",
+            "projectName": "code"
+        }
+    ]
+}
