@@ -20,4 +20,5 @@ public class Product {
     public double getPrice() { return price; }
     public int getStockQuantity() { return stockQuantity; }
     public void setStockQuantity(int stockQuantity) { this.stockQuantity = stockQuantity; }
+    public String getCategory() { return category; }
 }

@@ -1,0 +1,9 @@
+# Ignore class files
+*.class
+**/*.class
+
+# Ignore OS files
+.DS_Store
+
+# Ignore database file (auto-generated)
+shopease.db
