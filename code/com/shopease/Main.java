@@ -283,9 +283,26 @@ public class Main {
 
     private static void viewOrderHistory() {
         System.out.println("\n--- YOUR ORDER HISTORY ---");
-        if (orderHistory.isEmpty()) System.out.println("No past orders.");
+
+        if (orderHistory.isEmpty()) {
+            System.out.println("No past orders.");
+            return;
+        }
+
         for (Order o : orderHistory) {
-            System.out.println("- Order " + o.getOrderId() + " | Amount: RM" + o.getTotalAmount() + " | Status: " + o.getStatus());
+            System.out.println("- Order " + o.getOrderId()
+                    + " | Amount: RM" + o.getTotalAmount()
+                    + " | Status: " + o.getStatus());
+
+            System.out.println("  Items:");
+            if (o.getItems() == null || o.getItems().isEmpty()) {
+                System.out.println("  - No item details recorded.");
+            } else {
+                for (CartItem item : o.getItems()) {
+                    System.out.println("  - " + item.getProduct().getName()
+                            + " x" + item.getQuantity());
+                }
+            }
         }
     }
 
@@ -356,14 +373,16 @@ public class Main {
             System.out.println("\n--- Processing Transaction ---");
             context.executeStrategy(total);
 
+            List<CartItem> purchasedItems = new ArrayList<>(userCart.getItems());
+
             String orderId = "ORD-" + (int)(Math.random() * 10000);
             Order order = new Order(orderId, total);
             order.setStatus("Completed");
+            order.setItems(purchasedItems);
             orderHistory.add(order);
 
             System.out.println(">> SUCCESS: Order [" + order.getOrderId() + "] Completed.");
 
-            List<CartItem> purchasedItems = new ArrayList<>(userCart.getItems());
             userCart.getItems().clear();
 
             for (CartItem item : purchasedItems) {

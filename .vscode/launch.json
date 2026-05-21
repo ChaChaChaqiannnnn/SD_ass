@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "ShopEase GUI",
+            "request": "launch",
+            "mainClass": "com.shopease.ui.ShopEaseApp",
+            "projectName": "ShopEase",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "java",
+            "name": "ShopEase Console",
+            "request": "launch",
+            "mainClass": "com.shopease.Main",
+            "projectName": "ShopEase",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

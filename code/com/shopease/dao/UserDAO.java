@@ -11,7 +11,7 @@ import java.sql.SQLException;
 
 public class UserDAO {
 
-    public void insertUser(User user) {
+    public boolean insertUser(User user) {
         String sql = "INSERT INTO users(id, name, email, password, role) VALUES(?,?,?,?,?)";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -21,9 +21,40 @@ public class UserDAO {
             pstmt.setString(4, user.getPassword());
             pstmt.setString(5, user instanceof Admin ? "ADMIN" : "CUSTOMER");
             pstmt.executeUpdate();
+            return true;
         } catch (SQLException e) {
-            System.err.println("Error inserting user: " + e.getMessage());
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("UNIQUE") || msg.contains("constraint")) {
+                return false;
+            }
+            System.err.println("Error inserting user: " + msg);
+            return false;
         }
+    }
+
+    public User getUserById(String userId) {
+        String sql = "SELECT * FROM users WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, userId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    String id = rs.getString("id");
+                    String name = rs.getString("name");
+                    String email = rs.getString("email");
+                    String password = rs.getString("password");
+                    String role = rs.getString("role");
+                    if ("ADMIN".equals(role)) {
+                        return new Admin(id, name, email, password);
+                    } else {
+                        return new Customer(id, name, email, password);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching user by id: " + e.getMessage());
+        }
+        return null;
     }
 
     public User getUserByEmail(String email) {

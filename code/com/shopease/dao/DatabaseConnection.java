@@ -6,7 +6,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class DatabaseConnection {
-    private static final String URL = "jdbc:sqlite:shopease.db";
+    private static final String DB_PATH = System.getProperty("user.dir") + java.io.File.separator + "shopease.db";
+    private static final String URL = "jdbc:sqlite:" + DB_PATH;
 
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(URL);
@@ -42,9 +43,45 @@ public class DatabaseConnection {
                     "user_id TEXT NOT NULL," +
                     "total_amount REAL NOT NULL," +
                     "status TEXT NOT NULL," +
+                    "order_date INTEGER NOT NULL," +
                     "FOREIGN KEY(user_id) REFERENCES users(id)" +
                     ");";
             stmt.execute(createOrdersTable);
+            try {
+                stmt.execute("ALTER TABLE orders ADD COLUMN order_date INTEGER NOT NULL DEFAULT 0");
+            } catch (SQLException ignored) {
+                // column already exists
+            }
+
+            String createOrderItemsTable = "CREATE TABLE IF NOT EXISTS order_items (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "order_id TEXT NOT NULL," +
+                    "product_id TEXT NOT NULL," +
+                    "product_name TEXT NOT NULL," +
+                    "quantity INTEGER NOT NULL," +
+                    "unit_price REAL NOT NULL," +
+                    "FOREIGN KEY(order_id) REFERENCES orders(order_id)" +
+                    ");";
+            stmt.execute(createOrderItemsTable);
+
+            String createAdminLogTable = "CREATE TABLE IF NOT EXISTS admin_inventory_log (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "admin_id TEXT NOT NULL," +
+                    "admin_name TEXT NOT NULL," +
+                    "product_id TEXT NOT NULL," +
+                    "product_name TEXT NOT NULL," +
+                    "action_type TEXT NOT NULL," +
+                    "quantity_change INTEGER NOT NULL," +
+                    "stock_before INTEGER NOT NULL," +
+                    "stock_after INTEGER NOT NULL," +
+                    "created_at INTEGER NOT NULL" +
+                    ");";
+            stmt.execute(createAdminLogTable);
+            try {
+                stmt.execute("ALTER TABLE admin_inventory_log ADD COLUMN remarks TEXT NOT NULL DEFAULT ''");
+            } catch (SQLException ignored) {
+                // column already exists
+            }
 
             System.out.println("Database initialized successfully.");
             

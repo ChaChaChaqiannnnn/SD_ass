@@ -5,8 +5,12 @@
             "type": "java",
             "name": "Debug ShopEase (Group 5)",
             "request": "launch",
-            "mainClass": "com.shopease.Main",
-            "projectName": "code"
+            "mainClass": "com.shopease.ui.ShopEaseApp",
+            "classPaths": [
+                "${workspaceFolder}/bin",
+                "${workspaceFolder}/lib/sqlite-jdbc.jar"
+            ],
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

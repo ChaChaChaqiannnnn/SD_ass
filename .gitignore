@@ -1,6 +1,11 @@
-# Ignore class files
+# Ignore class files (use bin/ only)
 *.class
 **/*.class
+/com/
+/bin/
+
+# Broken or duplicate JAR backup
+lib/*.broken
 
 # Ignore OS files
 .DS_Store

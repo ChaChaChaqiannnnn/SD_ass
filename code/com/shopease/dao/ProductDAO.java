@@ -50,6 +50,28 @@ public class ProductDAO {
         return products;
     }
 
+    public Product getProductById(String productId) {
+        String sql = "SELECT * FROM products WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, productId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new Product(
+                            rs.getString("id"),
+                            rs.getString("name"),
+                            rs.getDouble("price"),
+                            rs.getInt("stock_quantity"),
+                            rs.getString("category")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching product: " + e.getMessage());
+        }
+        return null;
+    }
+
     public void updateStock(String productId, int newStock) {
         String sql = "UPDATE products SET stock_quantity = ? WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();

@@ -1,6 +1,7 @@
 package com.shopease.ui;
 
 import com.shopease.model.Product;
+import com.shopease.service.DataChangeListener;
 import com.shopease.service.ShopEaseService;
 
 import javax.swing.*;
@@ -9,178 +10,240 @@ import java.awt.*;
 import java.util.List;
 
 public class CustomerDashboard extends JPanel {
-    private ShopEaseService service;
-    private Runnable onLogout;
+    private final ShopEaseService service;
+    private final Runnable onLogout;
     private JPanel productsPanel;
     private List<Product> allProducts;
+    private JLabel statusLabel;
+    private JButton cartBtn;
+    private String lastSearchFilter = "";
+    private final DataChangeListener liveSyncListener;
 
     public CustomerDashboard(ShopEaseService service, Runnable onLogout) {
         this.service = service;
-        this.onLogout = onLogout;
-        setLayout(new BorderLayout(15, 15));
-        setBorder(new EmptyBorder(20, 20, 20, 20));
-        setBackground(new Color(245, 247, 250)); // Modern light background
+        this.liveSyncListener = this::refreshAll;
+        service.addDataChangeListener(liveSyncListener);
+        this.onLogout = () -> {
+            service.removeDataChangeListener(liveSyncListener);
+            onLogout.run();
+        };
+        setLayout(new BorderLayout(12, 12));
+        setBorder(new EmptyBorder(20, 24, 20, 24));
+        setBackground(ShopEaseUIUtils.BG_PAGE);
 
-        // HEADER
-        JPanel headerPanel = new JPanel(new BorderLayout());
+        JPanel headerPanel = new JPanel(new BorderLayout(12, 0));
         headerPanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Hello, " + service.getCurrentUser().getName() + " 👋");
-        titleLabel.setFont(new Font("Inter", Font.BOLD, 24));
-        titleLabel.setForeground(new Color(33, 37, 41));
-        
-        JButton cartBtn = new JButton("🛒 View Cart & Checkout");
-        styleButton(cartBtn, new Color(52, 152, 219));
+
+        JPanel titleBlock = new JPanel(new GridLayout(2, 1, 0, 4));
+        titleBlock.setOpaque(false);
+        JLabel titleLabel = new JLabel("Hello, " + service.getCurrentUser().getName());
+        titleLabel.setFont(ShopEaseUIUtils.titleFont());
+        titleLabel.setForeground(ShopEaseUIUtils.TEXT_PRIMARY);
+        JLabel subtitle = ShopEaseUIUtils.createMutedLabel("Browse products — open your cart anytime to edit or checkout.");
+        titleBlock.add(titleLabel);
+        titleBlock.add(subtitle);
+
+        JButton ordersBtn = new JButton("Order History");
+        ShopEaseUIUtils.styleSecondaryButton(ordersBtn);
+        ordersBtn.addActionListener(e -> showOrderHistoryDialog());
+
+        cartBtn = new JButton("View Cart");
+        ShopEaseUIUtils.stylePrimaryButton(cartBtn);
         cartBtn.addActionListener(e -> showCartDialog());
-        
-        headerPanel.add(titleLabel, BorderLayout.WEST);
-        headerPanel.add(cartBtn, BorderLayout.EAST);
+
+        JPanel headerActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        headerActions.setOpaque(false);
+        headerActions.add(ordersBtn);
+        headerActions.add(cartBtn);
+
+        headerPanel.add(titleBlock, BorderLayout.WEST);
+        headerPanel.add(headerActions, BorderLayout.EAST);
         add(headerPanel, BorderLayout.NORTH);
 
-        // SEARCH BAR
         JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
         centerPanel.setOpaque(false);
-        
+
         JTextField searchField = new JTextField();
-        searchField.setFont(new Font("Inter", Font.PLAIN, 16));
-        searchField.setBorder(BorderFactory.createTitledBorder("Search Products..."));
+        searchField.setFont(ShopEaseUIUtils.bodyFont());
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 224, 232)),
+                new EmptyBorder(10, 12, 10, 12)));
+        searchField.setToolTipText("Search by product name");
         searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-            private void filter() {
-                String text = searchField.getText().toLowerCase();
-                renderProducts(text);
-            }
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(searchField); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(searchField); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(searchField); }
         });
         centerPanel.add(searchField, BorderLayout.NORTH);
 
-        // PRODUCTS GRID
-        productsPanel = new JPanel(new GridLayout(0, 1, 15, 15));
+        productsPanel = new JPanel(new GridLayout(0, 1, 12, 12));
         productsPanel.setOpaque(false);
-        productsPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
-        
+        productsPanel.setBorder(new EmptyBorder(8, 0, 8, 0));
+
         JScrollPane scrollPane = new JScrollPane(productsPanel);
         scrollPane.setBorder(null);
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
-        
-        // Responsive Layout Listener
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
         scrollPane.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent e) {
                 int width = scrollPane.getWidth();
-                int cols = Math.max(1, width / 300); // 300px min width per card
-                productsPanel.setLayout(new GridLayout(0, cols, 15, 15));
+                int cols = Math.max(1, width / 320);
+                productsPanel.setLayout(new GridLayout(0, cols, 12, 12));
                 productsPanel.revalidate();
             }
         });
-        
+
         centerPanel.add(scrollPane, BorderLayout.CENTER);
         add(centerPanel, BorderLayout.CENTER);
 
-        // FOOTER
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setOpaque(false);
-        
+        bottomPanel.setBorder(new EmptyBorder(8, 0, 0, 0));
+
+        statusLabel = ShopEaseUIUtils.createMutedLabel("Tip: Added items stay in your cart until you remove them or checkout.");
+        bottomPanel.add(statusLabel, BorderLayout.WEST);
+
         JButton logoutBtn = new JButton("Logout");
-        styleButton(logoutBtn, new Color(231, 76, 60));
+        ShopEaseUIUtils.styleDangerButton(logoutBtn);
         logoutBtn.addActionListener(e -> {
             service.logout();
             onLogout.run();
         });
+        JPanel logoutWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        logoutWrap.setOpaque(false);
+        logoutWrap.add(logoutBtn);
+        bottomPanel.add(logoutWrap, BorderLayout.EAST);
 
-        bottomPanel.add(logoutBtn);
         add(bottomPanel, BorderLayout.SOUTH);
 
-        // Initial Load
-        allProducts = service.getAllProducts();
-        renderProducts("");
+        refreshAll();
     }
-    
+
+    private void refreshAll() {
+        allProducts = service.getAllProducts();
+        renderProducts(lastSearchFilter);
+        updateCartBadge();
+    }
+
+    private void applyFilter(JTextField searchField) {
+        lastSearchFilter = searchField.getText().toLowerCase();
+        renderProducts(lastSearchFilter);
+    }
+
     private void renderProducts(String filterText) {
         productsPanel.removeAll();
+        int shown = 0;
         for (Product p : allProducts) {
             if (p.getName().toLowerCase().contains(filterText)) {
                 productsPanel.add(createProductCard(p));
+                shown++;
             }
+        }
+        if (shown == 0) {
+            JLabel empty = new JLabel("No products match your search.");
+            empty.setFont(ShopEaseUIUtils.bodyFont());
+            empty.setForeground(ShopEaseUIUtils.TEXT_MUTED);
+            empty.setBorder(new EmptyBorder(24, 8, 24, 8));
+            productsPanel.add(empty);
         }
         productsPanel.revalidate();
         productsPanel.repaint();
     }
-    
+
     private JPanel createProductCard(Product p) {
-        JPanel card = new JPanel(new BorderLayout(10, 10));
-        card.setBackground(Color.WHITE);
+        JPanel card = new JPanel(new BorderLayout(12, 8));
+        card.setBackground(ShopEaseUIUtils.BG_CARD);
         card.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(220, 224, 232), 1, true),
-                new EmptyBorder(15, 15, 15, 15)
-        ));
-        
-        JPanel infoPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+                new EmptyBorder(16, 16, 16, 16)));
+
+        JPanel infoPanel = new JPanel(new GridLayout(2, 1, 4, 4));
         infoPanel.setOpaque(false);
-        
+
         JLabel nameLabel = new JLabel(p.getName());
-        nameLabel.setFont(new Font("Inter", Font.BOLD, 16));
-        
-        JLabel priceLabel = new JLabel("RM " + String.format("%.2f", p.getPrice()) + " | Stock: " + p.getStockQuantity());
-        priceLabel.setFont(new Font("Inter", Font.PLAIN, 14));
-        priceLabel.setForeground(new Color(127, 140, 141));
-        
+        nameLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
+
+        String stockText = p.getStockQuantity() > 0
+                ? "RM " + String.format("%.2f", p.getPrice()) + "  ·  " + p.getStockQuantity() + " in stock"
+                : "RM " + String.format("%.2f", p.getPrice()) + "  ·  Out of stock";
+        JLabel priceLabel = new JLabel(stockText);
+        priceLabel.setFont(ShopEaseUIUtils.smallFont());
+        priceLabel.setForeground(ShopEaseUIUtils.TEXT_MUTED);
+
         infoPanel.add(nameLabel);
         infoPanel.add(priceLabel);
-        
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
+
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actionPanel.setOpaque(false);
-        
-        JButton addBtn = new JButton("+ Add to Cart");
+
+        JButton addBtn = new JButton("Add to cart");
         if (p.getStockQuantity() > 0) {
             SpinnerNumberModel spinnerModel = new SpinnerNumberModel(1, 1, p.getStockQuantity(), 1);
             JSpinner qtySpinner = new JSpinner(spinnerModel);
-            qtySpinner.setFont(new Font("Inter", Font.PLAIN, 14));
+            qtySpinner.setFont(ShopEaseUIUtils.bodyFont());
 
-            styleButton(addBtn, new Color(46, 204, 113));
+            ShopEaseUIUtils.styleSuccessButton(addBtn);
             addBtn.addActionListener(e -> {
                 int qty = (int) qtySpinner.getValue();
-                service.addToCart(p, qty);
-                JOptionPane.showMessageDialog(this, qty + "x " + p.getName() + " added to cart!");
+                Product latest = service.getProductById(p.getProductId());
+                if (latest == null) {
+                    showStatus("Product no longer available.", true);
+                    refreshAll();
+                    return;
+                }
+                if (service.addToCart(latest, qty)) {
+                    showStatus(service.getLastMessage(), false);
+                } else {
+                    showStatus(service.getLastMessage(), true);
+                }
             });
-            
-            JLabel qtyLabel = new JLabel("Qty:");
-            qtyLabel.setFont(new Font("Inter", Font.PLAIN, 14));
+
+            JLabel qtyLabel = new JLabel("Qty");
+            qtyLabel.setFont(ShopEaseUIUtils.smallFont());
             actionPanel.add(qtyLabel);
             actionPanel.add(qtySpinner);
             actionPanel.add(addBtn);
         } else {
-            styleButton(addBtn, new Color(189, 195, 199));
-            addBtn.setText("Out of Stock");
             addBtn.setEnabled(false);
+            addBtn.setText("Unavailable");
+            ShopEaseUIUtils.styleSecondaryButton(addBtn);
             actionPanel.add(addBtn);
         }
-        
+
         card.add(infoPanel, BorderLayout.CENTER);
         card.add(actionPanel, BorderLayout.EAST);
-        
         return card;
     }
-    
-    private void showCartDialog() {
-        CartDialog dialog = new CartDialog((JFrame) SwingUtilities.getWindowAncestor(this), service);
-        dialog.pack(); // Fixes layout cutoff issues
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
-        
-        // Refresh product list stock after potential checkout
-        allProducts = service.getAllProducts();
-        renderProducts("");
+
+    private void showStatus(String message, boolean isError) {
+        statusLabel.setText(message);
+        statusLabel.setForeground(isError ? ShopEaseUIUtils.DANGER : ShopEaseUIUtils.TEXT_MUTED);
     }
 
-    private void styleButton(JButton btn, Color color) {
-        btn.setBackground(color);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Inter", Font.BOLD, 14));
-        btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(10, 20, 10, 20));
-        btn.setOpaque(true);
-        btn.setBorderPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    private void updateCartBadge() {
+        int n = service.getCartItemCount();
+        cartBtn.setText(n > 0 ? "View Cart (" + n + ")" : "View Cart");
+    }
+
+    private void showOrderHistoryDialog() {
+        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+        OrderHistoryDialog dialog = new OrderHistoryDialog(parent, service);
+        dialog.setVisible(true);
+    }
+
+    private void showCartDialog() {
+        if (service.getCart() == null) {
+            showStatus("Cart is only available for customer accounts.", true);
+            return;
+        }
+        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+        CartDialog dialog = new CartDialog(parent, service, msg -> {
+            if (msg != null && !msg.isEmpty()) {
+                showStatus(msg, false);
+            }
+        });
+        dialog.setVisible(true);
     }
 }

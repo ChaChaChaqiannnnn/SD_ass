@@ -1,3 +1,17 @@
+code/com/shopease/ui/ShopEaseUIUtils.java
+code/com/shopease/ui/OrderHistoryDialog.java
+code/com/shopease/ui/SignUpPanel.java
+code/com/shopease/ui/ShopEaseApp.java
+code/com/shopease/ui/AdminDashboard.java
+code/com/shopease/ui/CustomerDashboard.java
+code/com/shopease/ui/LoginPanel.java
+code/com/shopease/ui/CartDialog.java
+code/com/shopease/SmokeTest.java
+code/com/shopease/dao/DatabaseConnection.java
+code/com/shopease/dao/UserDAO.java
+code/com/shopease/dao/OrderDAO.java
+code/com/shopease/dao/AdminActivityDAO.java
+code/com/shopease/dao/ProductDAO.java
 code/com/shopease/observer/ShopEaseInventorySubject.java
 code/com/shopease/observer/ShopEaseSubject.java
 code/com/shopease/observer/ShopEaseShoppingCartObserver.java
@@ -12,6 +26,9 @@ code/com/shopease/model/Admin.java
 code/com/shopease/model/Customer.java
 code/com/shopease/model/User.java
 code/com/shopease/model/CartItem.java
+code/com/shopease/model/AdminInventoryLog.java
+code/com/shopease/service/DataChangeListener.java
+code/com/shopease/service/ShopEaseService.java
 code/com/shopease/strategy/ShopEaseMAEStrategy.java
 code/com/shopease/strategy/ShopEaseCreditCardStrategy.java
 code/com/shopease/strategy/ShopEasePaymentContext.java
