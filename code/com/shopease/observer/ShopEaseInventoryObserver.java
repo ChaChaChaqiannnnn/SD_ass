@@ -1,7 +1,7 @@
 package com.shopease.observer;
 
-//this is the rule for any object that wants to get inventory alerts
-public interface ShopEaseInventoryObserver {
-    //this is what the object does when it gets an update
+/** Observer interface for inventory, UI sync, cart reminders, and admin alerts. */
+public interface ShopEaseInventoryObserver extends Observer {
+    @Override
     void update(String event, String productName);
 }

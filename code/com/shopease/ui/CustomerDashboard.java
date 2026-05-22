@@ -1,7 +1,8 @@
 package com.shopease.ui;
 
 import com.shopease.model.Product;
-import com.shopease.service.DataChangeListener;
+import com.shopease.observer.ShopEaseInventoryObserver;
+import com.shopease.observer.ShopEaseUiRefreshObserver;
 import com.shopease.service.ShopEaseService;
 
 import javax.swing.*;
@@ -15,16 +16,17 @@ public class CustomerDashboard extends JPanel {
     private JPanel productsPanel;
     private List<Product> allProducts;
     private JLabel statusLabel;
+    private JLabel titleLabel;
     private JButton cartBtn;
     private String lastSearchFilter = "";
-    private final DataChangeListener liveSyncListener;
+    private final ShopEaseInventoryObserver uiRefreshObserver;
 
     public CustomerDashboard(ShopEaseService service, Runnable onLogout) {
         this.service = service;
-        this.liveSyncListener = this::refreshAll;
-        service.addDataChangeListener(liveSyncListener);
+        this.uiRefreshObserver = new ShopEaseUiRefreshObserver(this::refreshAll);
+        service.attachObserver(uiRefreshObserver);
         this.onLogout = () -> {
-            service.removeDataChangeListener(liveSyncListener);
+            service.detachObserver(uiRefreshObserver);
             onLogout.run();
         };
         setLayout(new BorderLayout(12, 12));
@@ -36,14 +38,23 @@ public class CustomerDashboard extends JPanel {
 
         JPanel titleBlock = new JPanel(new GridLayout(2, 1, 0, 4));
         titleBlock.setOpaque(false);
-        JLabel titleLabel = new JLabel("Hello, " + service.getCurrentUser().getName());
+        titleLabel = new JLabel("Hello, " + service.getCurrentUser().getName());
         titleLabel.setFont(ShopEaseUIUtils.titleFont());
         titleLabel.setForeground(ShopEaseUIUtils.TEXT_PRIMARY);
         JLabel subtitle = ShopEaseUIUtils.createMutedLabel("Browse products — open your cart anytime to edit or checkout.");
         titleBlock.add(titleLabel);
         titleBlock.add(subtitle);
 
-        JButton ordersBtn = new JButton("Order History");
+        JButton profileBtn = new JButton("Profile settings");
+        ShopEaseUIUtils.styleSecondaryButton(profileBtn);
+        profileBtn.setToolTipText("Change your name, email, or password");
+        profileBtn.addActionListener(e -> showProfileDialog());
+
+        JButton wishlistBtn = new JButton("Wishlist");
+        ShopEaseUIUtils.styleSecondaryButton(wishlistBtn);
+        wishlistBtn.addActionListener(e -> showWishlistDialog());
+
+        JButton ordersBtn = new JButton("Orders");
         ShopEaseUIUtils.styleSecondaryButton(ordersBtn);
         ordersBtn.addActionListener(e -> showOrderHistoryDialog());
 
@@ -51,8 +62,10 @@ public class CustomerDashboard extends JPanel {
         ShopEaseUIUtils.stylePrimaryButton(cartBtn);
         cartBtn.addActionListener(e -> showCartDialog());
 
-        JPanel headerActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        JPanel headerActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         headerActions.setOpaque(false);
+        headerActions.add(profileBtn);
+        headerActions.add(wishlistBtn);
         headerActions.add(ordersBtn);
         headerActions.add(cartBtn);
 
@@ -175,8 +188,30 @@ public class CustomerDashboard extends JPanel {
         infoPanel.add(nameLabel);
         infoPanel.add(priceLabel);
 
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         actionPanel.setOpaque(false);
+
+        boolean inWishlist = service.isInWishlist(p.getProductId());
+        JButton wishBtn = new JButton(inWishlist ? "♥ Saved" : "♥ Save");
+        if (inWishlist) {
+            ShopEaseUIUtils.styleSecondaryButton(wishBtn);
+        } else {
+            ShopEaseUIUtils.styleButton(wishBtn, new Color(155, 89, 182));
+        }
+        wishBtn.addActionListener(e -> {
+            if (service.isInWishlist(p.getProductId())) {
+                service.removeFromWishlist(p.getProductId());
+                showStatus("Removed from wishlist.", false);
+            } else {
+                if (service.addToWishlist(p.getProductId())) {
+                    showStatus(service.getLastMessage(), false);
+                } else {
+                    showStatus(service.getLastMessage(), true);
+                }
+            }
+            renderProducts(lastSearchFilter);
+        });
+        actionPanel.add(wishBtn);
 
         JButton addBtn = new JButton("Add to cart");
         if (p.getStockQuantity() > 0) {
@@ -225,6 +260,24 @@ public class CustomerDashboard extends JPanel {
     private void updateCartBadge() {
         int n = service.getCartItemCount();
         cartBtn.setText(n > 0 ? "View Cart (" + n + ")" : "View Cart");
+    }
+
+    private void showProfileDialog() {
+        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+        ProfileDialog dialog = new ProfileDialog(parent, service, this::refreshHeader);
+        dialog.setVisible(true);
+    }
+
+    private void refreshHeader() {
+        if (service.getCurrentUser() != null) {
+            titleLabel.setText("Hello, " + service.getCurrentUser().getName());
+        }
+    }
+
+    private void showWishlistDialog() {
+        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+        WishlistDialog dialog = new WishlistDialog(parent, service);
+        dialog.setVisible(true);
     }
 
     private void showOrderHistoryDialog() {

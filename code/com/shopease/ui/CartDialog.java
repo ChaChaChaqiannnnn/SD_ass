@@ -2,7 +2,8 @@ package com.shopease.ui;
 
 import com.shopease.model.CartItem;
 import com.shopease.model.Product;
-import com.shopease.service.DataChangeListener;
+import com.shopease.observer.ShopEaseInventoryObserver;
+import com.shopease.observer.ShopEaseUiRefreshObserver;
 import com.shopease.service.ShopEaseService;
 import com.shopease.strategy.*;
 
@@ -23,13 +24,13 @@ public class CartDialog extends JDialog {
     private final JLabel hintLabel;
     private final JButton checkoutBtn;
     private final JComboBox<String> paymentCombo;
-    private final DataChangeListener liveSyncListener;
+    private final ShopEaseInventoryObserver uiRefreshObserver;
 
     public CartDialog(JFrame parent, ShopEaseService service, Consumer<String> onCartChanged) {
         super(parent, "Your Cart", false);
         this.service = service;
         this.onCartChanged = onCartChanged;
-        this.liveSyncListener = this::refreshCart;
+        this.uiRefreshObserver = new ShopEaseUiRefreshObserver(this::refreshCart);
 
         if (service.getCart() == null) {
             JOptionPane.showMessageDialog(parent,
@@ -132,11 +133,11 @@ public class CartDialog extends JDialog {
         footer.add(actions);
         add(footer, BorderLayout.SOUTH);
 
-        service.addDataChangeListener(liveSyncListener);
+        service.attachObserver(uiRefreshObserver);
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosed(java.awt.event.WindowEvent e) {
-                service.removeDataChangeListener(liveSyncListener);
+                service.detachObserver(uiRefreshObserver);
             }
         });
 

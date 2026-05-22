@@ -23,7 +23,15 @@ public class SmokeTest {
 
         if (!s.login(email, "pass")) fail("customer login");
         Product mouse = s.getProductById("MSE-02");
-        if (!s.addToCart(mouse, 2)) fail("add to cart");
+        if (mouse.getStockQuantity() < 2) {
+            s.logout();
+            if (!s.login("admin@email.admin.my", "adminpass")) fail("admin login for restock");
+            s.restockProduct("MSE-02", 2 - mouse.getStockQuantity());
+            s.logout();
+            if (!s.login(email, "pass")) fail("customer re-login");
+            mouse = s.getProductById("MSE-02");
+        }
+        if (!s.addToCart(mouse, 2)) fail("add to cart: " + s.getLastMessage());
         if (!s.checkout(new ShopEaseCreditCardStrategy())) fail("checkout: " + s.getLastMessage());
 
         int stock = s.getProductById("MSE-02").getStockQuantity();

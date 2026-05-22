@@ -10,7 +10,11 @@ public class DatabaseConnection {
     private static final String URL = "jdbc:sqlite:" + DB_PATH;
 
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL);
+        Connection conn = DriverManager.getConnection(URL);
+        try (Statement pragma = conn.createStatement()) {
+            pragma.execute("PRAGMA foreign_keys = ON");
+        }
+        return conn;
     }
 
     public static void initializeDatabase() {
@@ -82,6 +86,25 @@ public class DatabaseConnection {
             } catch (SQLException ignored) {
                 // column already exists
             }
+
+            String createWishlistTable = "CREATE TABLE IF NOT EXISTS wishlist (" +
+                    "user_id TEXT NOT NULL," +
+                    "product_id TEXT NOT NULL," +
+                    "PRIMARY KEY(user_id, product_id)," +
+                    "FOREIGN KEY(user_id) REFERENCES users(id)," +
+                    "FOREIGN KEY(product_id) REFERENCES products(id)" +
+                    ");";
+            stmt.execute(createWishlistTable);
+
+            String createWishlistSnapshotTable = "CREATE TABLE IF NOT EXISTS wishlist_stock_snapshot ("
+                    + "user_id TEXT NOT NULL,"
+                    + "product_id TEXT NOT NULL,"
+                    + "stock_quantity INTEGER NOT NULL,"
+                    + "PRIMARY KEY(user_id, product_id),"
+                    + "FOREIGN KEY(user_id) REFERENCES users(id),"
+                    + "FOREIGN KEY(product_id) REFERENCES products(id)"
+                    + ");";
+            stmt.execute(createWishlistSnapshotTable);
 
             System.out.println("Database initialized successfully.");
             

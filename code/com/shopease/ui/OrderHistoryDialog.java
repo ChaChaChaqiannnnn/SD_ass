@@ -2,7 +2,8 @@ package com.shopease.ui;
 
 import com.shopease.model.CartItem;
 import com.shopease.model.Order;
-import com.shopease.service.DataChangeListener;
+import com.shopease.observer.ShopEaseInventoryObserver;
+import com.shopease.observer.ShopEaseUiRefreshObserver;
 import com.shopease.service.ShopEaseService;
 
 import javax.swing.*;
@@ -16,41 +17,59 @@ public class OrderHistoryDialog extends JDialog {
 
     private final ShopEaseService service;
     private final JTextArea historyArea;
-    private final DataChangeListener liveSyncListener;
+    private final ShopEaseInventoryObserver uiRefreshObserver;
 
     public OrderHistoryDialog(JFrame parent, ShopEaseService service) {
         super(parent, "Order History", true);
         this.service = service;
-        this.liveSyncListener = this::reloadHistory;
+        this.uiRefreshObserver = new ShopEaseUiRefreshObserver(this::reloadHistory);
 
-        setMinimumSize(new Dimension(560, 420));
+        setMinimumSize(new Dimension(580, 440));
         setLocationRelativeTo(parent);
-        setLayout(new BorderLayout(10, 10));
-        getContentPane().setBackground(Color.WHITE);
+        getContentPane().setBackground(ShopEaseUIUtils.BG_PAGE);
+        setLayout(new BorderLayout(12, 12));
 
-        JLabel title = new JLabel("Your Past Orders");
-        title.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 18));
-        title.setBorder(new EmptyBorder(15, 15, 5, 15));
-        add(title, BorderLayout.NORTH);
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setBorder(new EmptyBorder(16, 20, 0, 20));
+        JLabel title = new JLabel("Your past orders");
+        title.setFont(ShopEaseUIUtils.titleFont());
+        JLabel subtitle = ShopEaseUIUtils.createMutedLabel("Order IDs use date + daily sequence (dd/MM/yy-###).");
+        header.add(title, BorderLayout.NORTH);
+        header.add(subtitle, BorderLayout.SOUTH);
+        add(header, BorderLayout.NORTH);
 
         historyArea = new JTextArea();
         historyArea.setEditable(false);
-        historyArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
-        historyArea.setBorder(new EmptyBorder(10, 15, 10, 15));
-        add(new JScrollPane(historyArea), BorderLayout.CENTER);
+        historyArea.setFont(ShopEaseUIUtils.bodyFont());
+        historyArea.setBackground(ShopEaseUIUtils.BG_CARD);
+        historyArea.setBorder(new EmptyBorder(12, 14, 12, 14));
+        historyArea.setLineWrap(true);
+        historyArea.setWrapStyleWord(true);
 
+        JScrollPane scroll = new JScrollPane(historyArea);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 232)));
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        JPanel center = new JPanel(new BorderLayout());
+        center.setOpaque(false);
+        center.setBorder(new EmptyBorder(8, 20, 8, 20));
+        center.add(scroll, BorderLayout.CENTER);
+        add(center, BorderLayout.CENTER);
+
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        bottom.setOpaque(false);
+        bottom.setBorder(new EmptyBorder(0, 16, 16, 16));
         JButton closeBtn = new JButton("Close");
+        ShopEaseUIUtils.styleSecondaryButton(closeBtn);
         closeBtn.addActionListener(e -> dispose());
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        bottom.setBorder(new EmptyBorder(0, 15, 15, 15));
         bottom.add(closeBtn);
         add(bottom, BorderLayout.SOUTH);
 
-        service.addDataChangeListener(liveSyncListener);
+        service.attachObserver(uiRefreshObserver);
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosed(java.awt.event.WindowEvent e) {
-                service.removeDataChangeListener(liveSyncListener);
+                service.detachObserver(uiRefreshObserver);
             }
         });
 
@@ -64,23 +83,22 @@ public class OrderHistoryDialog extends JDialog {
 
     private String buildHistoryText(List<Order> orders) {
         if (orders.isEmpty()) {
-            return "No past orders.\nComplete a checkout to see history here.";
+            return "No orders yet.\n\nAdd items to your cart and checkout to see history here.";
         }
 
         StringBuilder sb = new StringBuilder();
         for (Order o : orders) {
-            sb.append("- Order ").append(o.getOrderId())
-              .append(" | ").append(DATE_FMT.format(o.getOrderDate()))
-              .append(" | RM").append(String.format("%.2f", o.getTotalAmount()))
-              .append(" | ").append(o.getStatus())
-              .append("\n");
-            sb.append("  Items:\n");
+            sb.append("Order ").append(o.getOrderId())
+              .append("\n  Date: ").append(DATE_FMT.format(o.getOrderDate()))
+              .append("  ·  Total: RM ").append(String.format("%.2f", o.getTotalAmount()))
+              .append("  ·  ").append(o.getStatus())
+              .append("\n  Items:\n");
             if (o.getItems() == null || o.getItems().isEmpty()) {
-                sb.append("  - No item details recorded.\n");
+                sb.append("    (no line items recorded)\n");
             } else {
                 for (CartItem item : o.getItems()) {
-                    sb.append("  - ").append(item.getProduct().getName())
-                      .append(" x").append(item.getQuantity())
+                    sb.append("    • ").append(item.getProduct().getName())
+                      .append(" × ").append(item.getQuantity())
                       .append("\n");
                 }
             }

@@ -14,6 +14,41 @@ import java.util.List;
 
 public class OrderDAO {
 
+    /** Next sequence (1-based) for orders whose id starts with {@code dd/MM/yy-}. */
+    public int nextSequenceForDatePrefix(String datePrefix) {
+        String pattern = datePrefix + "-%";
+        String sql = "SELECT order_id FROM orders WHERE order_id LIKE ?";
+        int maxSeq = 0;
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, pattern);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    String orderId = rs.getString("order_id");
+                    int seq = parseSequenceSuffix(orderId, datePrefix);
+                    if (seq > maxSeq) {
+                        maxSeq = seq;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error reading order sequence: " + e.getMessage());
+        }
+        return maxSeq + 1;
+    }
+
+    private static int parseSequenceSuffix(String orderId, String datePrefix) {
+        if (orderId == null || !orderId.startsWith(datePrefix + "-")) {
+            return 0;
+        }
+        String suffix = orderId.substring(datePrefix.length() + 1);
+        try {
+            return Integer.parseInt(suffix);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     public void insertOrder(Order order, String userId) {
         String sql = "INSERT INTO orders(order_id, user_id, total_amount, status, order_date) VALUES(?,?,?,?,?)";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -107,7 +142,7 @@ public class OrderDAO {
             try {
                 return new Date(Long.parseLong(orderId.substring(4)));
             } catch (NumberFormatException ignored) {
-                // fall through
+                // legacy timestamp ids
             }
         }
         return new Date();

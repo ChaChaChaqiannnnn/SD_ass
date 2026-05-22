@@ -29,6 +29,11 @@ public class ShopEaseInventorySubject implements ShopEaseSubject {
         }
     }
 
+    /** Publishes any app event to registered observers (Observer pattern). */
+    public void publishEvent(String event, String detail) {
+        notifyObservers(event, detail);
+    }
+
     //this changes the stock amount and sends out alerts
     public void setStock(int qty, String productName) {
         this.stock = qty;
@@ -37,8 +42,7 @@ public class ShopEaseInventorySubject implements ShopEaseSubject {
             System.out.println("\n[Inventory] " + productName + " is now OUT OF STOCK.");
             //this sends a sold out message to everyone
             notifyObservers("OUT_OF_STOCK", productName);
-        } else if (qty < 3) {
-            //this shows that we are almost out of items
+        } else if (qty < com.shopease.model.InventoryStockStatus.LOW_STOCK_THRESHOLD) {
             System.out.println("\n[Inventory] " + productName + " stock is LOW (" + qty + ").");
             //this sends a low stock warning to everyone
             notifyObservers("LOW_STOCK", productName);

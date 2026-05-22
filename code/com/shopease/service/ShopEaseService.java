@@ -5,28 +5,35 @@ import com.shopease.dao.DatabaseConnection;
 import com.shopease.dao.OrderDAO;
 import com.shopease.dao.ProductDAO;
 import com.shopease.dao.UserDAO;
+import com.shopease.dao.WishlistDAO;
 import com.shopease.model.*;
 import com.shopease.observer.*;
 import com.shopease.singleton.ShopEaseCartSingleton;
+import com.shopease.singleton.ShopEaseWishlistSingleton;
 import com.shopease.strategy.*;
+import com.shopease.util.OrderIdGenerator;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ShopEaseService {
     private ProductDAO productDAO;
     private UserDAO userDAO;
     private OrderDAO orderDAO;
     private AdminActivityDAO adminActivityDAO;
+    private WishlistDAO wishlistDAO;
 
     private User currentUser;
     private ShopEaseCartSingleton userCart;
+    private ShopEaseWishlistSingleton userWishlist;
     private ShopEaseInventorySubject inventorySystem;
+    private final ShopEaseProfileUpdateStrategy profileUpdateStrategy = new CustomerProfileUpdateStrategy();
+    private final ShopEaseAdminUserActionStrategy deleteUserStrategy = new DeleteCustomerUserStrategy();
+    private final CreateCustomerUserStrategy createUserStrategy = new CreateCustomerUserStrategy();
+    private final UpdateCustomerUserStrategy updateUserStrategy = new UpdateCustomerUserStrategy();
     private String lastMessage = "";
     private AdminInventoryLog lastUndoableStockAction;
-    private final List<DataChangeListener> dataChangeListeners = new CopyOnWriteArrayList<>();
 
     public ShopEaseService() {
         DatabaseConnection.initializeDatabase();
@@ -34,6 +41,7 @@ public class ShopEaseService {
         this.userDAO = new UserDAO();
         this.orderDAO = new OrderDAO();
         this.adminActivityDAO = new AdminActivityDAO();
+        this.wishlistDAO = new WishlistDAO();
         this.inventorySystem = new ShopEaseInventorySubject();
         seedInitialData();
     }
@@ -65,9 +73,12 @@ public class ShopEaseService {
 
             if (user instanceof Customer) {
                 userCart = ShopEaseCartSingleton.getInstance(user.getUserId());
+                userWishlist = ShopEaseWishlistSingleton.getInstance(user.getUserId());
                 inventorySystem.attach(new ShopEaseShoppingCartObserver(userCart));
+            } else {
+                userWishlist = null;
             }
-            inventorySystem.attach(new ShopEaseAdminObserver());
+            setupInventoryObservers();
             return true;
         }
         lastMessage = "Invalid email or password.";
@@ -106,20 +117,87 @@ public class ShopEaseService {
     public void logout() {
         this.currentUser = null;
         this.userCart = null;
+        this.userWishlist = null;
         this.inventorySystem = new ShopEaseInventorySubject();
         this.lastMessage = "";
         this.lastUndoableStockAction = null;
-        dataChangeListeners.clear();
     }
 
-    public void addDataChangeListener(DataChangeListener listener) {
-        if (listener != null) {
-            dataChangeListeners.add(listener);
+    private void setupInventoryObservers() {
+        inventorySystem.attach(new ShopEaseAdminObserver());
+    }
+
+    /** Register an Observer (inventory alerts, UI refresh, cart reminder). */
+    public void attachObserver(ShopEaseInventoryObserver observer) {
+        if (observer != null) {
+            inventorySystem.attach(observer);
         }
     }
 
-    public void removeDataChangeListener(DataChangeListener listener) {
-        dataChangeListeners.remove(listener);
+    public void detachObserver(ShopEaseInventoryObserver observer) {
+        if (observer != null) {
+            inventorySystem.detach(observer);
+        }
+    }
+
+    /** Observer: admin login summary of products that are low or out of stock. */
+    public void publishAdminLowStockOnLogin() {
+        if (!(currentUser instanceof Admin)) {
+            return;
+        }
+        StringBuilder summary = new StringBuilder();
+        for (Product p : productDAO.getAllProducts()) {
+            int stock = p.getStockQuantity();
+            if (InventoryStockStatus.isOutOfStock(stock)) {
+                if (summary.length() > 0) {
+                    summary.append("\n");
+                }
+                summary.append("• ").append(p.getName()).append(" — OUT OF STOCK");
+            } else if (InventoryStockStatus.isLowStock(stock)) {
+                if (summary.length() > 0) {
+                    summary.append("\n");
+                }
+                summary.append("• ").append(p.getName()).append(" — LOW STOCK (").append(stock).append(" left)");
+            }
+        }
+        if (summary.length() > 0) {
+            inventorySystem.publishEvent("ADMIN_LOGIN_STOCK", summary.toString());
+        }
+    }
+
+    /** Observer: wishlist items that were out of stock and are available again (Singleton wishlist). */
+    public void publishWishlistRestockOnLogin() {
+        if (userWishlist == null || currentUser == null) {
+            return;
+        }
+        StringBuilder restocked = new StringBuilder();
+        for (Product p : userWishlist.getProducts(wishlistDAO, productDAO)) {
+            int now = p.getStockQuantity();
+            int lastKnown = wishlistDAO.getLastKnownStock(currentUser.getUserId(), p.getProductId());
+            if (now > 0 && lastKnown == 0) {
+                if (restocked.length() > 0) {
+                    restocked.append("\n");
+                }
+                restocked.append("• ").append(p.getName()).append(" (").append(now).append(" in stock)");
+            }
+            wishlistDAO.saveStockSnapshot(currentUser.getUserId(), p.getProductId(), now);
+        }
+        if (restocked.length() > 0) {
+            inventorySystem.publishEvent("WISHLIST_RESTOCK", restocked.toString());
+        }
+    }
+
+    /** Observer pattern: notify customer if Singleton cart has items after login. */
+    public void publishCartReminderIfNeeded() {
+        syncCartWithDatabase();
+        int count = getCartItemCount();
+        if (count <= 0) {
+            return;
+        }
+        String message = count == 1
+                ? "You have 1 item waiting in your cart. Open View Cart to review or checkout."
+                : "You have " + count + " items waiting in your cart. Open View Cart to review or checkout.";
+        inventorySystem.publishEvent("CART_REMINDER", message);
     }
 
     /** Keeps cart line items aligned with current database stock and prices. */
@@ -148,9 +226,7 @@ public class ShopEaseService {
 
     private void notifyDataChanged() {
         syncCartWithDatabase();
-        for (DataChangeListener listener : dataChangeListeners) {
-            javax.swing.SwingUtilities.invokeLater(listener::onDataChanged);
-        }
+        inventorySystem.publishEvent("DATA_CHANGED", "");
     }
 
     public List<Product> getAllProducts() {
@@ -454,7 +530,7 @@ public class ShopEaseService {
             purchasedItems.add(new CartItem(fresh, item.getQuantity()));
         }
 
-        String orderId = "ORD-" + System.currentTimeMillis();
+        String orderId = OrderIdGenerator.nextOrderId(orderDAO);
         Order order = new Order(orderId, total);
         order.setStatus("Completed");
         order.setItems(purchasedItems);
@@ -469,6 +545,148 @@ public class ShopEaseService {
         }
 
         lastMessage = "Order " + orderId + " placed successfully.";
+        notifyDataChanged();
+        return true;
+    }
+
+    // --- Wishlist ---
+    public boolean addToWishlist(String productId) {
+        lastMessage = "";
+        if (!(currentUser instanceof Customer)) {
+            lastMessage = "Wishlist is for customer accounts only.";
+            return false;
+        }
+        if (productDAO.getProductById(productId) == null) {
+            lastMessage = "Product not found.";
+            return false;
+        }
+        if (userWishlist.add(wishlistDAO, productId)) {
+            Product p = productDAO.getProductById(productId);
+            if (p != null) {
+                wishlistDAO.saveStockSnapshot(currentUser.getUserId(), productId, p.getStockQuantity());
+            }
+            lastMessage = "Added to wishlist.";
+            notifyDataChanged();
+            return true;
+        }
+        lastMessage = "Already in wishlist or product not found.";
+        return false;
+    }
+
+    public boolean removeFromWishlist(String productId) {
+        if (currentUser == null) {
+            return false;
+        }
+        boolean removed = userWishlist != null && userWishlist.remove(wishlistDAO, productId);
+        if (removed) {
+            lastMessage = "Removed from wishlist.";
+            notifyDataChanged();
+        }
+        return removed;
+    }
+
+    public boolean isInWishlist(String productId) {
+        if (currentUser == null) {
+            return false;
+        }
+        return userWishlist != null && userWishlist.contains(wishlistDAO, productId);
+    }
+
+    public List<Product> getWishlistProducts() {
+        if (!(currentUser instanceof Customer)) {
+            return List.of();
+        }
+        return userWishlist.getProducts(wishlistDAO, productDAO);
+    }
+
+    public boolean moveWishlistItemToCart(String productId, int qty) {
+        Product p = productDAO.getProductById(productId);
+        if (p == null) {
+            lastMessage = "Product not found.";
+            return false;
+        }
+        if (addToCart(p, qty)) {
+            removeFromWishlist(productId);
+            lastMessage = "Moved to cart.";
+            return true;
+        }
+        return false;
+    }
+
+    // --- Profile ---
+    public boolean updateCustomerProfile(String name, String email, String newPassword) {
+        lastMessage = "";
+        ShopEaseProfileUpdateStrategy.ProfileUpdateResult result =
+                new ShopEaseProfileUpdateStrategy.ProfileUpdateResult();
+        if (!profileUpdateStrategy.update(userDAO, currentUser, name, email, newPassword, result)) {
+            lastMessage = result.message;
+            return false;
+        }
+        currentUser = result.updatedUser;
+        lastMessage = result.message;
+        notifyDataChanged();
+        return true;
+    }
+
+    // --- Admin user management ---
+    public List<User> getAllUsersForAdmin() {
+        if (!(currentUser instanceof Admin)) {
+            return List.of();
+        }
+        return userDAO.getAllUsers().stream()
+                .filter(u -> u instanceof Customer)
+                .toList();
+    }
+
+    public List<Order> getOrdersForUserAsAdmin(String userId) {
+        if (!(currentUser instanceof Admin)) {
+            return List.of();
+        }
+        return orderDAO.getOrdersByUserId(userId);
+    }
+
+    public List<Product> getWishlistForUserAsAdmin(String userId) {
+        if (!(currentUser instanceof Admin)) {
+            return List.of();
+        }
+        return wishlistDAO.getProductsForUser(userId, productDAO);
+    }
+
+    public boolean createCustomerAsAdmin(String name, String email, String password) {
+        lastMessage = "";
+        ShopEaseAdminUserActionStrategy.AdminUserActionResult result =
+                new ShopEaseAdminUserActionStrategy.AdminUserActionResult();
+        if (!createUserStrategy.create(userDAO, currentUser, name, email, password, result)) {
+            lastMessage = result.message;
+            return false;
+        }
+        lastMessage = result.message;
+        notifyDataChanged();
+        return true;
+    }
+
+    public boolean updateCustomerAsAdmin(String userId, String name, String email, String password) {
+        lastMessage = "";
+        ShopEaseAdminUserActionStrategy.AdminUserActionResult result =
+                new ShopEaseAdminUserActionStrategy.AdminUserActionResult();
+        if (!updateUserStrategy.update(userDAO, currentUser, userId, name, email, password, result)) {
+            lastMessage = result.message;
+            return false;
+        }
+        lastMessage = result.message;
+        notifyDataChanged();
+        return true;
+    }
+
+    public boolean deleteUserAsAdmin(String userId) {
+        lastMessage = "";
+        ShopEaseAdminUserActionStrategy.AdminUserActionResult result =
+                new ShopEaseAdminUserActionStrategy.AdminUserActionResult();
+        if (!deleteUserStrategy.execute(userDAO, currentUser, userId, result)) {
+            lastMessage = result.message;
+            return false;
+        }
+        lastMessage = result.message;
         notifyDataChanged();
         return true;
     }

@@ -1,6 +1,10 @@
 package com.shopease.ui;
 
 import com.shopease.model.Admin;
+import com.shopease.observer.ShopEaseAdminLoginStockObserver;
+import com.shopease.observer.ShopEaseCartReminderObserver;
+import com.shopease.observer.ShopEaseInventoryObserver;
+import com.shopease.observer.ShopEaseWishlistRestockObserver;
 import com.shopease.service.ShopEaseService;
 
 import javax.swing.*;
@@ -63,10 +67,29 @@ public class ShopEaseApp extends JFrame {
         setSize(900, 600);
         if (service.getCurrentUser() instanceof Admin) {
             setTitle("ShopEase — Admin");
-            setContentPane(new AdminDashboard(service, this::showLoginScreen));
+            ShopEaseInventoryObserver adminLoginStockObserver = new ShopEaseAdminLoginStockObserver(this);
+            service.attachObserver(adminLoginStockObserver);
+            service.publishAdminLowStockOnLogin();
+            setContentPane(new AdminDashboard(service, () -> {
+                service.detachObserver(adminLoginStockObserver);
+                showLoginScreen();
+            }));
         } else {
             setTitle("ShopEase — Shop");
-            setContentPane(new CustomerDashboard(service, this::showLoginScreen));
+            ShopEaseInventoryObserver cartReminderObserver = new ShopEaseCartReminderObserver(this);
+            ShopEaseInventoryObserver wishlistRestockObserver = new ShopEaseWishlistRestockObserver(this);
+            service.attachObserver(cartReminderObserver);
+            service.attachObserver(wishlistRestockObserver);
+            service.publishWishlistRestockOnLogin();
+            service.publishCartReminderIfNeeded();
+            setContentPane(new CustomerDashboard(service, () -> {
+                service.detachObserver(cartReminderObserver);
+                service.detachObserver(wishlistRestockObserver);
+                showLoginScreen();
+            }));
+            revalidate();
+            repaint();
+            return;
         }
         revalidate();
         repaint();
