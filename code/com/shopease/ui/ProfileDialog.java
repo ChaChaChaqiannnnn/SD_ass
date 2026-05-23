@@ -10,6 +10,7 @@ import java.awt.*;
 public class ProfileDialog extends JDialog {
     public ProfileDialog(JFrame parent, ShopEaseService service, Runnable onProfileUpdated) {
         super(parent, "Profile settings", true);
+        setSize(460, 480);
         setMinimumSize(new Dimension(440, 420));
         setLocationRelativeTo(parent);
         getContentPane().setBackground(ShopEaseUIUtils.BG_PAGE);
@@ -71,8 +72,10 @@ public class ProfileDialog extends JDialog {
         JButton save = new JButton("Save changes");
         ShopEaseUIUtils.stylePrimaryButton(save);
         save.addActionListener(e -> {
-            String pass = new String(passField.getPassword());
+            String pass    = new String(passField.getPassword());
             String confirm = new String(confirmField.getPassword());
+
+            // Client-side validation — no I/O, safe on EDT
             if (!pass.isEmpty() && !pass.equals(confirm)) {
                 status.setText("Passwords do not match.");
                 status.setForeground(ShopEaseUIUtils.DANGER);
@@ -83,19 +86,48 @@ public class ProfileDialog extends JDialog {
                 status.setForeground(ShopEaseUIUtils.DANGER);
                 return;
             }
-            if (service.updateCustomerProfile(nameField.getText(), emailField.getText(), pass)) {
-                if (onProfileUpdated != null) {
-                    onProfileUpdated.run();
+
+            // SwingWorker — moves SQLite write off the EDT to prevent Windows freeze
+            save.setEnabled(false);
+            save.setText("Saving…");
+            status.setText("Saving…");
+            status.setForeground(ShopEaseUIUtils.TEXT_MUTED);
+
+            final String finalName  = nameField.getText();
+            final String finalEmail = emailField.getText();
+            final String finalPass  = pass;
+
+            new javax.swing.SwingWorker<Boolean, Void>() {
+                @Override
+                protected Boolean doInBackground() {
+                    // Strategy pattern — delegates to CustomerProfileUpdateStrategy
+                    return service.updateCustomerProfile(finalName, finalEmail, finalPass);
                 }
-                JOptionPane.showMessageDialog(this,
-                        service.getLastMessage(),
-                        "Profile updated",
-                        JOptionPane.INFORMATION_MESSAGE);
-                dispose();
-            } else {
-                status.setText(service.getLastMessage());
-                status.setForeground(ShopEaseUIUtils.DANGER);
-            }
+
+                @Override
+                protected void done() {
+                    save.setEnabled(true);
+                    save.setText("Save changes");
+                    try {
+                        if (get()) {
+                            if (onProfileUpdated != null) {
+                                onProfileUpdated.run();
+                            }
+                            JOptionPane.showMessageDialog(ProfileDialog.this,
+                                    service.getLastMessage(),
+                                    "Profile updated",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                            dispose();
+                        } else {
+                            status.setText(service.getLastMessage());
+                            status.setForeground(ShopEaseUIUtils.DANGER);
+                        }
+                    } catch (Exception ex) {
+                        status.setText("An unexpected error occurred.");
+                        status.setForeground(ShopEaseUIUtils.DANGER);
+                    }
+                }
+            }.execute();
         });
         actions.add(cancel);
         actions.add(save);

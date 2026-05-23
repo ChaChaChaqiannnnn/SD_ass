@@ -46,6 +46,8 @@ public class ShopEaseApp extends JFrame {
     private void showLoginScreen() {
         setContentPane(authContainer);
         setSize(480, 560);
+        setMinimumSize(new Dimension(420, 500));
+        setLocationRelativeTo(null);
         setTitle("ShopEase — Sign in");
         authLayout.show(authContainer, CARD_LOGIN);
         loginPanel.clearFields();
@@ -56,6 +58,8 @@ public class ShopEaseApp extends JFrame {
     private void showSignUpScreen() {
         setContentPane(authContainer);
         setSize(480, 620);
+        setMinimumSize(new Dimension(420, 550));
+        setLocationRelativeTo(null);
         setTitle("ShopEase — Create account");
         authLayout.show(authContainer, CARD_SIGNUP);
         signUpPanel.clearFields();
@@ -65,6 +69,8 @@ public class ShopEaseApp extends JFrame {
 
     private void onLoginSuccess() {
         setSize(900, 600);
+        setMinimumSize(new Dimension(900, 600));
+        setLocationRelativeTo(null);
         if (service.getCurrentUser() instanceof Admin) {
             setTitle("ShopEase — Admin");
             ShopEaseInventoryObserver adminLoginStockObserver = new ShopEaseAdminLoginStockObserver(this);
@@ -97,10 +103,26 @@ public class ShopEaseApp extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+            // Use Nimbus — cross-platform, ships with every JDK, respects setBackground()
+            // on custom-painted buttons (unlike the Windows native L&F which ignores it).
+            boolean nimbusDone = false;
             try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                    if ("Nimbus".equals(info.getName())) {
+                        UIManager.setLookAndFeel(info.getClassName());
+                        nimbusDone = true;
+                        break;
+                    }
+                }
             } catch (Exception ignored) {
-                // use default L&F
+                // Nimbus unavailable — fall through to cross-platform default
+            }
+            if (!nimbusDone) {
+                try {
+                    UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+                } catch (Exception ignored) {
+                    // use whatever JVM default remains
+                }
             }
             new ShopEaseApp().setVisible(true);
         });

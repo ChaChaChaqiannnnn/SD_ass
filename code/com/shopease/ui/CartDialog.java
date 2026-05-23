@@ -45,6 +45,7 @@ public class CartDialog extends JDialog {
             return;
         }
 
+        setSize(580, 520);
         setMinimumSize(new Dimension(560, 480));
         setLocationRelativeTo(parent);
         getContentPane().setBackground(ShopEaseUIUtils.BG_PAGE);
@@ -89,9 +90,8 @@ public class CartDialog extends JDialog {
         payRow.setOpaque(false);
         payRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         payRow.add(new JLabel("Payment:"));
-        paymentCombo = new JComboBox<>(new String[]{
-                "Credit Card", "DuitNow QR", "MAE", "Touch 'n Go"
-        });
+        // Factory pattern — options sourced from ShopEasePaymentStrategyFactory
+        paymentCombo = new JComboBox<>(ShopEasePaymentStrategyFactory.ALL_METHODS);
         paymentCombo.setFont(ShopEaseUIUtils.bodyFont());
         payRow.add(paymentCombo);
         footer.add(payRow);
@@ -177,7 +177,6 @@ public class CartDialog extends JDialog {
 
         itemsPanel.revalidate();
         itemsPanel.repaint();
-        pack();
     }
 
     private JPanel buildItemRow(CartItem item) {
@@ -246,34 +245,57 @@ public class CartDialog extends JDialog {
             return;
         }
 
-        ShopEasePaymentStrategy strategy = switch (paymentCombo.getSelectedIndex()) {
-            case 0 -> new ShopEaseCreditCardStrategy();
-            case 1 -> new ShopEaseDuitNowStrategy();
-            case 2 -> new ShopEaseMAEStrategy();
-            default -> new ShopEaseTNGStrategy();
-        };
+        // Factory pattern — strategy created from display name via ShopEasePaymentStrategyFactory
+        final String paymentName = (String) paymentCombo.getSelectedItem();
+        final ShopEasePaymentStrategy strategy =
+                ShopEasePaymentStrategyFactory.create(paymentName);
 
-        java.util.List<CartItem> snapshot = new java.util.ArrayList<>(service.getCart().getItems());
-        double finalTotal = service.getCartTotal();
-        String paymentName = (String) paymentCombo.getSelectedItem();
+        // Snapshot cart before the async call (cart is cleared on success)
+        final java.util.List<CartItem> snapshot =
+                new java.util.ArrayList<>(service.getCart().getItems());
+        final double finalTotal = service.getCartTotal();
 
-        if (service.checkout(strategy)) {
-            StringBuilder receipt = new StringBuilder();
-            receipt.append("Thank you! Order placed.\n\n");
-            for (CartItem item : snapshot) {
-                receipt.append(" • ").append(item.getProduct().getName())
-                        .append(" x").append(item.getQuantity()).append("\n");
+        // SwingWorker — moves SQLite write off the EDT to prevent Windows freeze
+        checkoutBtn.setEnabled(false);
+        checkoutBtn.setText("Processing…");
+        paymentCombo.setEnabled(false);
+
+        new javax.swing.SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                // Strategy pattern — delegates to the concrete payment implementation
+                return service.checkout(strategy);
             }
-            receipt.append("\nTotal: RM").append(String.format("%.2f", finalTotal));
-            receipt.append("\nPaid via: ").append(paymentName);
-            receipt.append("\n\n").append(service.getLastMessage());
-            JOptionPane.showMessageDialog(this, receipt, "Order complete", JOptionPane.INFORMATION_MESSAGE);
-            notifyStatus();
-            dispose();
-        } else {
-            showInlineNotice(service.getLastMessage().isEmpty()
-                    ? "Checkout failed." : service.getLastMessage());
-        }
+
+            @Override
+            protected void done() {
+                checkoutBtn.setEnabled(true);
+                checkoutBtn.setText("Pay & place order");
+                paymentCombo.setEnabled(true);
+                try {
+                    if (get()) {
+                        StringBuilder receipt = new StringBuilder();
+                        receipt.append("Thank you! Order placed.\n\n");
+                        for (CartItem item : snapshot) {
+                            receipt.append(" • ").append(item.getProduct().getName())
+                                   .append(" x").append(item.getQuantity()).append("\n");
+                        }
+                        receipt.append("\nTotal: RM").append(String.format("%.2f", finalTotal));
+                        receipt.append("\nPaid via: ").append(paymentName);
+                        receipt.append("\n\n").append(service.getLastMessage());
+                        JOptionPane.showMessageDialog(CartDialog.this, receipt,
+                                "Order complete", JOptionPane.INFORMATION_MESSAGE);
+                        notifyStatus();
+                        dispose();
+                    } else {
+                        showInlineNotice(service.getLastMessage().isEmpty()
+                                ? "Checkout failed." : service.getLastMessage());
+                    }
+                } catch (Exception ex) {
+                    showInlineNotice("An unexpected error occurred. Please try again.");
+                }
+            }
+        }.execute();
     }
 
     private void showInlineNotice(String message) {

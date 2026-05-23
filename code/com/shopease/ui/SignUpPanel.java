@@ -121,11 +121,12 @@ public class SignUpPanel extends JPanel {
     }
 
     private void attemptSignUp() {
-        String name = nameField.getText().trim();
-        String email = UserAccountUtils.normalizeEmail(emailField.getText());
-        String pass = new String(passwordField.getPassword());
+        String name    = nameField.getText().trim();
+        String email   = UserAccountUtils.normalizeEmail(emailField.getText());
+        String pass    = new String(passwordField.getPassword());
         String confirm = new String(confirmPasswordField.getPassword());
 
+        // ── Client-side validation (no I/O — safe on EDT) ──────────────────
         if (name.isEmpty()) {
             showStatus("Please enter your name.", true);
             nameField.requestFocus();
@@ -153,14 +154,73 @@ public class SignUpPanel extends JPanel {
             return;
         }
 
+        // ── Database write on background thread (SwingWorker) ───────────────
+        // Prevent double-click and give visual feedback while the DB write runs.
+        // This fixes the Windows "Not Responding" freeze caused by SQLite I/O
+        // blocking the Event Dispatch Thread.
         Customer customer = new Customer(CustomerIdGenerator.nextId(), name, email, pass);
-        if (service.registerCustomer(customer)) {
-            clearFields();
-            onSignUpSuccess.run();
-        } else {
-            String msg = service.getLastMessage().isEmpty()
-                    ? "Could not create account. Please try again." : service.getLastMessage();
-            showStatus(msg, true);
+
+        // Locate the Create Account button to disable it during the async call.
+        JButton createBtn = null;
+        for (java.awt.Component c : getComponents()) {
+            if (c instanceof JButton b && "Create account".equals(b.getText())) {
+                createBtn = b;
+                break;
+            }
         }
+        // Walk the component tree if not found at the top level.
+        final JButton submitBtn = createBtn != null ? createBtn : findCreateButton(this);
+
+        if (submitBtn != null) {
+            submitBtn.setEnabled(false);
+            submitBtn.setText("Creating…");
+        }
+        showStatus("Creating your account…", false);
+
+        final String finalEmail = email;
+        new javax.swing.SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                return service.registerCustomer(customer);
+            }
+
+            @Override
+            protected void done() {
+                // Back on the EDT — safe to touch UI
+                if (submitBtn != null) {
+                    submitBtn.setEnabled(true);
+                    submitBtn.setText("Create account");
+                }
+                try {
+                    boolean ok = get();
+                    if (ok) {
+                        clearFields();
+                        onSignUpSuccess.run();
+                    } else {
+                        String msg = service.getLastMessage().isEmpty()
+                                ? "Could not create account. Please try again."
+                                : service.getLastMessage();
+                        showStatus(msg, true);
+                    }
+                } catch (Exception ex) {
+                    showStatus("An unexpected error occurred. Please try again.", true);
+                }
+            }
+        }.execute();
+    }
+
+    /** Recursively searches for a JButton with text "Create account". */
+    private static JButton findCreateButton(java.awt.Container container) {
+        for (java.awt.Component c : container.getComponents()) {
+            if (c instanceof JButton b && "Create account".equals(b.getText())) {
+                return b;
+            }
+            if (c instanceof java.awt.Container sub) {
+                JButton found = findCreateButton(sub);
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 }
+

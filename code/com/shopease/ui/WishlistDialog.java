@@ -19,6 +19,7 @@ public class WishlistDialog extends JDialog {
         this.service = service;
         this.syncObserver = new ShopEaseUiRefreshObserver(this::refreshList);
 
+        setSize(540, 450);
         setMinimumSize(new Dimension(520, 420));
         setLocationRelativeTo(parent);
         getContentPane().setBackground(ShopEaseUIUtils.BG_PAGE);

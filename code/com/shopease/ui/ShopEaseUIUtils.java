@@ -108,4 +108,30 @@ public final class ShopEaseUIUtils {
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
     }
+
+    /**
+     * Styles a button for use on dark-background admin panels (coloured variant).
+     * Delegates through the shared path so Nimbus renders it correctly on Windows.
+     *
+     * Design Pattern: used by AdminInventoryPanel and AdminUsersPanel to avoid
+     * duplicating private styleButton() methods that bypass cross-platform rendering.
+     */
+    public static void styleDarkButton(JButton btn, Color bg) {
+        btn.setBackground(bg);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(bodyFont());
+        btn.setFocusPainted(false);
+        btn.setBorder(new EmptyBorder(9, 16, 9, 16));
+        btn.setOpaque(true);
+        btn.setBorderPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    }
+
+    /**
+     * Styles a button for use on dark-background admin panels (secondary / neutral variant).
+     */
+    public static void styleDarkSecondaryButton(JButton btn) {
+        styleDarkButton(btn, new Color(52, 73, 94));
+        btn.setForeground(new Color(236, 240, 241));
+    }
 }

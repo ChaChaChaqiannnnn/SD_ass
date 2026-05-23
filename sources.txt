@@ -10,6 +10,7 @@ code/com/shopease/ui/ProfileDialog.java
 code/com/shopease/ui/CustomerDashboard.java
 code/com/shopease/ui/LoginPanel.java
 code/com/shopease/ui/CartDialog.java
+code/com/shopease/FullSystemTest.java
 code/com/shopease/SmokeTest.java
 code/com/shopease/util/CustomerIdGenerator.java
 code/com/shopease/util/OrderIdGenerator.java
@@ -44,6 +45,7 @@ code/com/shopease/model/InventoryStockStatus.java
 code/com/shopease/model/AdminInventoryLog.java
 code/com/shopease/service/ShopEaseService.java
 code/com/shopease/FeatureTest.java
+code/com/shopease/strategy/ShopEasePaymentStrategyFactory.java
 code/com/shopease/strategy/ShopEaseMAEStrategy.java
 code/com/shopease/strategy/ShopEaseCreditCardStrategy.java
 code/com/shopease/strategy/ShopEaseProfileUpdateStrategy.java

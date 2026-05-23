@@ -5,8 +5,23 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+/**
+ * DatabaseConnection — Singleton Pattern
+ * =======================================
+ * Provides a single, shared SQLite connection configuration for the entire
+ * ShopEase application. The DB file path and JDBC URL are static constants,
+ * ensuring all DAOs talk to the same database regardless of which class
+ * requests the connection.
+ *
+ * Design Pattern: Singleton (class-level static state)
+ * Cross-platform: uses java.io.File.separator so the path resolves
+ *   correctly on both Windows ( \ ) and macOS/Linux ( / ).
+ *
+ * Used by: ProductDAO, UserDAO, OrderDAO, WishlistDAO, AdminActivityDAO
+ */
 public class DatabaseConnection {
-    private static final String DB_PATH = System.getProperty("user.dir") + java.io.File.separator + "shopease.db";
+    private static final String DB_PATH =
+            System.getProperty("user.dir") + java.io.File.separator + "shopease.db";
     private static final String URL = "jdbc:sqlite:" + DB_PATH;
 
     public static Connection getConnection() throws SQLException {

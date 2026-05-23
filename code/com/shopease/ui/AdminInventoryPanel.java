@@ -81,7 +81,7 @@ public class AdminInventoryPanel extends JPanel {
         historyPanel.add(new JScrollPane(historyArea), BorderLayout.CENTER);
 
         JButton refreshHistoryBtn = new JButton("Refresh log");
-        styleSecondaryDark(refreshHistoryBtn);
+        ShopEaseUIUtils.styleDarkSecondaryButton(refreshHistoryBtn);
         refreshHistoryBtn.addActionListener(e -> refreshHistory());
         JPanel historyTop = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         historyTop.setOpaque(false);
@@ -105,13 +105,13 @@ public class AdminInventoryPanel extends JPanel {
         restockSpinner = new JSpinner(new SpinnerNumberModel(10, 1, 9999, 1));
         restockSpinner.setFont(ShopEaseUIUtils.bodyFont());
         JButton restockBtn = new JButton("Restock selected");
-        styleButton(restockBtn, new Color(39, 174, 96));
+        ShopEaseUIUtils.styleDarkButton(restockBtn, new Color(39, 174, 96));
         restockBtn.addActionListener(e -> doRestock((int) restockSpinner.getValue()));
         JButton quickTenBtn = new JButton("Quick +10");
-        styleSecondaryDark(quickTenBtn);
+        ShopEaseUIUtils.styleDarkSecondaryButton(quickTenBtn);
         quickTenBtn.addActionListener(e -> doRestock(10));
         undoBtn = new JButton("Undo last change");
-        styleButton(undoBtn, new Color(241, 196, 15));
+        ShopEaseUIUtils.styleDarkButton(undoBtn, new Color(241, 196, 15));
         undoBtn.setForeground(new Color(44, 62, 80));
         undoBtn.addActionListener(e -> doUndo());
         restockRow.add(amountLabel);
@@ -132,10 +132,10 @@ public class AdminInventoryPanel extends JPanel {
         JLabel remarksLabel = new JLabel("Remarks (required):");
         remarksLabel.setForeground(new Color(236, 240, 241));
         remarksLabel.setFont(ShopEaseUIUtils.bodyFont());
-        remarksField = new JTextField(28);
+        remarksField = new JTextField(15);
         remarksField.setFont(ShopEaseUIUtils.bodyFont());
         JButton reduceBtn = new JButton("Reduce stock");
-        styleButton(reduceBtn, new Color(192, 57, 43));
+        ShopEaseUIUtils.styleDarkButton(reduceBtn, new Color(192, 57, 43));
         reduceBtn.addActionListener(e -> doReduce());
         reduceRow.add(reduceLabel);
         reduceRow.add(reduceSpinner);
@@ -171,11 +171,24 @@ public class AdminInventoryPanel extends JPanel {
             showStatus("Select a product from the list first.", true);
             return;
         }
-        if (service.restockProduct(p.getProductId(), amount)) {
-            showStatus(service.getLastMessage(), false);
-        } else {
-            showStatus(service.getLastMessage(), true);
-        }
+        // SwingWorker — moves SQLite stock update off the EDT to prevent Windows freeze
+        // Strategy pattern — ShopEaseService delegates to AdminUserActionStrategy internally
+        final String productId = p.getProductId();
+        new javax.swing.SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                return service.restockProduct(productId, amount);
+            }
+            @Override
+            protected void done() {
+                try {
+                    showStatus(service.getLastMessage(), !get());
+                } catch (Exception ex) {
+                    showStatus("Restock error. Please try again.", true);
+                }
+                refreshAll();
+            }
+        }.execute();
     }
 
     private void doReduce() {
@@ -200,12 +213,30 @@ public class AdminInventoryPanel extends JPanel {
         if (confirm != JOptionPane.YES_OPTION) {
             return;
         }
-        if (service.reduceStockProduct(p.getProductId(), amount, remarks)) {
-            showStatus(service.getLastMessage(), false);
-            remarksField.setText("");
-        } else {
-            showStatus(service.getLastMessage(), true);
-        }
+        // SwingWorker — moves SQLite write off the EDT
+        final String productId = p.getProductId();
+        final String finalRemarks = remarks;
+        final int finalAmount = amount;
+        new javax.swing.SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                return service.reduceStockProduct(productId, finalAmount, finalRemarks);
+            }
+            @Override
+            protected void done() {
+                try {
+                    if (get()) {
+                        showStatus(service.getLastMessage(), false);
+                        remarksField.setText("");
+                    } else {
+                        showStatus(service.getLastMessage(), true);
+                    }
+                } catch (Exception ex) {
+                    showStatus("Reduce error. Please try again.", true);
+                }
+                refreshAll();
+            }
+        }.execute();
     }
 
     private void doUndo() {
@@ -217,11 +248,23 @@ public class AdminInventoryPanel extends JPanel {
         if (confirm != JOptionPane.YES_OPTION) {
             return;
         }
-        if (service.undoLastRestock()) {
-            showStatus(service.getLastMessage(), false);
-        } else {
-            showStatus(service.getLastMessage(), true);
-        }
+        // SwingWorker — moves SQLite undo write off the EDT
+        // Command pattern analogue — undoLastRestock() reverses the last AdminActivityLog entry
+        new javax.swing.SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                return service.undoLastRestock();
+            }
+            @Override
+            protected void done() {
+                try {
+                    showStatus(service.getLastMessage(), !get());
+                } catch (Exception ex) {
+                    showStatus("Undo error. Please try again.", true);
+                }
+                refreshAll();
+            }
+        }.execute();
     }
 
     private void refreshList() {
@@ -254,27 +297,8 @@ public class AdminInventoryPanel extends JPanel {
         statusLabel.setText(message);
         statusLabel.setForeground(error ? new Color(231, 76, 60) : new Color(46, 204, 113));
     }
-
-    private void styleButton(JButton btn, Color color) {
-        btn.setBackground(color);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(ShopEaseUIUtils.bodyFont());
-        btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
-        btn.setOpaque(true);
-        btn.setBorderPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-    }
-
-    private void styleSecondaryDark(JButton btn) {
-        btn.setBackground(new Color(52, 73, 94));
-        btn.setForeground(new Color(236, 240, 241));
-        btn.setFont(ShopEaseUIUtils.bodyFont());
-        btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(8, 14, 8, 14));
-        btn.setOpaque(true);
-        btn.setBorderPainted(false);
-    }
+    // Note: button styling is now handled by ShopEaseUIUtils.styleDarkButton()
+    // and ShopEaseUIUtils.styleDarkSecondaryButton() — no private duplicates needed.
 
     private static class AdminProductCellRenderer extends DefaultListCellRenderer {
         @Override

@@ -24,6 +24,7 @@ public class OrderHistoryDialog extends JDialog {
         this.service = service;
         this.uiRefreshObserver = new ShopEaseUiRefreshObserver(this::reloadHistory);
 
+        setSize(600, 480);
         setMinimumSize(new Dimension(580, 440));
         setLocationRelativeTo(parent);
         getContentPane().setBackground(ShopEaseUIUtils.BG_PAGE);

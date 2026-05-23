@@ -198,18 +198,29 @@ public class CustomerDashboard extends JPanel {
         } else {
             ShopEaseUIUtils.styleButton(wishBtn, new Color(155, 89, 182));
         }
+        // Observer pattern — wishlist/cart changes notify ShopEaseUiRefreshObserver → refreshAll()
         wishBtn.addActionListener(e -> {
-            if (service.isInWishlist(p.getProductId())) {
-                service.removeFromWishlist(p.getProductId());
-                showStatus("Removed from wishlist.", false);
-            } else {
-                if (service.addToWishlist(p.getProductId())) {
-                    showStatus(service.getLastMessage(), false);
-                } else {
-                    showStatus(service.getLastMessage(), true);
+            wishBtn.setEnabled(false);
+            // SwingWorker — wishlist DB read/write off the EDT
+            new javax.swing.SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() {
+                    // Strategy pattern — singleton wishlist delegates to WishlistDAO
+                    if (service.isInWishlist(p.getProductId())) {
+                        service.removeFromWishlist(p.getProductId());
+                    } else {
+                        service.addToWishlist(p.getProductId());
+                    }
+                    return null;
                 }
-            }
-            renderProducts(lastSearchFilter);
+
+                @Override
+                protected void done() {
+                    wishBtn.setEnabled(true);
+                    showStatus(service.getLastMessage(), false);
+                    renderProducts(lastSearchFilter);
+                }
+            }.execute();
         });
         actionPanel.add(wishBtn);
 
@@ -221,18 +232,32 @@ public class CustomerDashboard extends JPanel {
 
             ShopEaseUIUtils.styleSuccessButton(addBtn);
             addBtn.addActionListener(e -> {
-                int qty = (int) qtySpinner.getValue();
-                Product latest = service.getProductById(p.getProductId());
-                if (latest == null) {
-                    showStatus("Product no longer available.", true);
-                    refreshAll();
-                    return;
-                }
-                if (service.addToCart(latest, qty)) {
-                    showStatus(service.getLastMessage(), false);
-                } else {
-                    showStatus(service.getLastMessage(), true);
-                }
+                // SwingWorker — Singleton cart + DB write off the EDT
+                addBtn.setEnabled(false);
+                addBtn.setText("Adding…");
+                final int qty = (int) qtySpinner.getValue();
+                new javax.swing.SwingWorker<Void, Void>() {
+                    @Override
+                    protected Void doInBackground() {
+                        Product latest = service.getProductById(p.getProductId());
+                        if (latest == null) {
+                            return null;
+                        }
+                        // Singleton pattern — ShopEaseCartSingleton.getInstance() used inside
+                        service.addToCart(latest, qty);
+                        return null;
+                    }
+
+                    @Override
+                    protected void done() {
+                        addBtn.setEnabled(true);
+                        addBtn.setText("Add to cart");
+                        String msg = service.getLastMessage();
+                        boolean error = msg != null && (msg.contains("exceed") || msg.contains("stock")
+                                || msg.contains("unavailable") || msg.contains("no longer"));
+                        showStatus(msg != null ? msg : "", error);
+                    }
+                }.execute();
             });
 
             JLabel qtyLabel = new JLabel("Qty");

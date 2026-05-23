@@ -53,16 +53,16 @@ public class AdminUsersPanel extends JPanel {
         toolbar.setOpaque(false);
         toolbar.setBorder(new EmptyBorder(8, 0, 0, 0));
         JButton newBtn = new JButton("New customer");
-        styleAccent(newBtn, new Color(52, 152, 219));
+        ShopEaseUIUtils.styleDarkButton(newBtn, new Color(52, 152, 219));
         newBtn.addActionListener(e -> startCreateMode());
         JButton saveBtn = new JButton("Save");
-        styleAccent(saveBtn, new Color(39, 174, 96));
+        ShopEaseUIUtils.styleDarkButton(saveBtn, new Color(39, 174, 96));
         saveBtn.addActionListener(e -> saveUser());
         JButton deleteBtn = new JButton("Delete");
-        styleAccent(deleteBtn, new Color(192, 57, 43));
+        ShopEaseUIUtils.styleDarkButton(deleteBtn, new Color(192, 57, 43));
         deleteBtn.addActionListener(e -> deleteUser());
         JButton refreshBtn = new JButton("Refresh");
-        styleSecondary(refreshBtn);
+        ShopEaseUIUtils.styleDarkSecondaryButton(refreshBtn);
         refreshBtn.addActionListener(e -> refreshAll());
         toolbar.add(newBtn);
         toolbar.add(saveBtn);
@@ -168,10 +168,19 @@ public class AdminUsersPanel extends JPanel {
         wishlistList.setForeground(Color.WHITE);
         tabs.addTab("Wishlist", new JScrollPane(wishlistList));
 
-        JPanel rightSplit = new JPanel(new BorderLayout(8, 0));
+        JScrollPane formScroll = new JScrollPane(form);
+        formScroll.setBorder(null);
+        formScroll.setOpaque(false);
+        formScroll.getViewport().setOpaque(false);
+        formScroll.getVerticalScrollBar().setUnitIncrement(12);
+        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        JSplitPane rightSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
         rightSplit.setOpaque(false);
-        rightSplit.add(form, BorderLayout.NORTH);
-        rightSplit.add(tabs, BorderLayout.CENTER);
+        rightSplit.setBorder(null);
+        rightSplit.setTopComponent(formScroll);
+        rightSplit.setBottomComponent(tabs);
+        rightSplit.setResizeWeight(0.45);
         detailPanel.add(rightSplit, BorderLayout.CENTER);
         split.setRightComponent(detailPanel);
 
@@ -302,9 +311,9 @@ public class AdminUsersPanel extends JPanel {
     }
 
     private void saveUser() {
-        String name = nameField.getText();
-        String email = emailField.getText();
-        String pass = new String(passwordField.getPassword());
+        String name    = nameField.getText();
+        String email   = emailField.getText();
+        String pass    = new String(passwordField.getPassword());
         String confirm = new String(confirmField.getPassword());
         if (!pass.equals(confirm)) {
             showStatus("Passwords do not match.", true);
@@ -315,13 +324,27 @@ public class AdminUsersPanel extends JPanel {
                 showStatus("Password is required for new customers.", true);
                 return;
             }
-            if (service.createCustomerAsAdmin(name, email, pass)) {
-                showStatus(service.getLastMessage(), false);
-                refreshAll();
-                createMode = false;
-            } else {
-                showStatus(service.getLastMessage(), true);
-            }
+            // SwingWorker — createCustomerAsAdmin SQLite write off the EDT
+            // Strategy pattern — CreateCustomerUserStrategy handles validation + persistence
+            final String fn = name, fe = email, fp = pass;
+            new javax.swing.SwingWorker<Boolean, Void>() {
+                @Override protected Boolean doInBackground() {
+                    return service.createCustomerAsAdmin(fn, fe, fp);
+                }
+                @Override protected void done() {
+                    try {
+                        if (get()) {
+                            showStatus(service.getLastMessage(), false);
+                            refreshAll();
+                            createMode = false;
+                        } else {
+                            showStatus(service.getLastMessage(), true);
+                        }
+                    } catch (Exception ex) {
+                        showStatus("Create error. Please try again.", true);
+                    }
+                }
+            }.execute();
             return;
         }
         User u = getSelectedCustomer();
@@ -329,13 +352,28 @@ public class AdminUsersPanel extends JPanel {
             showStatus("Select a customer or click New customer.", true);
             return;
         }
-        if (service.updateCustomerAsAdmin(u.getUserId(), name, email, pass)) {
-            showStatus(service.getLastMessage(), false);
-            refreshAll();
-            selectCustomerById(u.getUserId());
-        } else {
-            showStatus(service.getLastMessage(), true);
-        }
+        // SwingWorker — updateCustomerAsAdmin SQLite write off the EDT
+        // Strategy pattern — UpdateCustomerUserStrategy handles validation + persistence
+        final String uid = u.getUserId();
+        final String fn2 = name, fe2 = email, fp2 = pass;
+        new javax.swing.SwingWorker<Boolean, Void>() {
+            @Override protected Boolean doInBackground() {
+                return service.updateCustomerAsAdmin(uid, fn2, fe2, fp2);
+            }
+            @Override protected void done() {
+                try {
+                    if (get()) {
+                        showStatus(service.getLastMessage(), false);
+                        refreshAll();
+                        selectCustomerById(uid);
+                    } else {
+                        showStatus(service.getLastMessage(), true);
+                    }
+                } catch (Exception ex) {
+                    showStatus("Update error. Please try again.", true);
+                }
+            }
+        }.execute();
     }
 
     private void deleteUser() {
@@ -353,13 +391,27 @@ public class AdminUsersPanel extends JPanel {
         if (confirm != JOptionPane.YES_OPTION) {
             return;
         }
-        if (service.deleteUserAsAdmin(u.getUserId())) {
-            showStatus(service.getLastMessage(), false);
-            clearForm();
-            refreshAll();
-        } else {
-            showStatus(service.getLastMessage(), true);
-        }
+        // SwingWorker — deleteUserAsAdmin SQLite write off the EDT
+        // Strategy pattern — DeleteCustomerUserStrategy handles cascade + persistence
+        final String uid = u.getUserId();
+        new javax.swing.SwingWorker<Boolean, Void>() {
+            @Override protected Boolean doInBackground() {
+                return service.deleteUserAsAdmin(uid);
+            }
+            @Override protected void done() {
+                try {
+                    if (get()) {
+                        showStatus(service.getLastMessage(), false);
+                        clearForm();
+                        refreshAll();
+                    } else {
+                        showStatus(service.getLastMessage(), true);
+                    }
+                } catch (Exception ex) {
+                    showStatus("Delete error. Please try again.", true);
+                }
+            }
+        }.execute();
     }
 
     private void selectCustomerById(String userId) {
@@ -418,24 +470,6 @@ public class AdminUsersPanel extends JPanel {
         return p;
     }
 
-    private void styleAccent(JButton btn, Color bg) {
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(ShopEaseUIUtils.bodyFont());
-        btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(8, 16, 8, 16));
-        btn.setOpaque(true);
-        btn.setBorderPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-    }
-
-    private void styleSecondary(JButton btn) {
-        btn.setBackground(new Color(52, 73, 94));
-        btn.setForeground(new Color(236, 240, 241));
-        btn.setFont(ShopEaseUIUtils.bodyFont());
-        btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(8, 14, 8, 14));
-        btn.setOpaque(true);
-        btn.setBorderPainted(false);
-    }
+    // Note: button styling delegated to ShopEaseUIUtils.styleDarkButton()
+    // and ShopEaseUIUtils.styleDarkSecondaryButton() — no private duplicates needed.
 }

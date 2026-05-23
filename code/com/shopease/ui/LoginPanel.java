@@ -109,19 +109,67 @@ public class LoginPanel extends JPanel {
 
     private void attemptLogin() {
         String email = emailField.getText().trim();
-        String pass = new String(passwordField.getPassword());
+        String pass  = new String(passwordField.getPassword());
+
+        // ── Client-side check (no I/O — safe on EDT) ────────────────────────
         if (email.isEmpty() || pass.isEmpty()) {
             showStatus("Please enter your email and password.", true);
             return;
         }
-        if (service.login(email, pass)) {
-            onLoginSuccess.run();
-        } else {
-            String msg = service.getLastMessage().isEmpty()
-                    ? "Incorrect email or password. Please try again." : service.getLastMessage();
-            showStatus(msg, true);
-            passwordField.setText("");
-            passwordField.requestFocus();
+
+        // ── Database read on background thread (SwingWorker) ────────────────
+        // Fixes the Windows "Not Responding" freeze caused by SQLite I/O
+        // blocking the Event Dispatch Thread.
+        JButton signInBtn = findSignInButton(this);
+        if (signInBtn != null) {
+            signInBtn.setEnabled(false);
+            signInBtn.setText("Signing in…");
         }
+        showStatus("Signing in…", false);
+
+        new javax.swing.SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                return service.login(email, pass);
+            }
+
+            @Override
+            protected void done() {
+                // Back on the EDT — safe to touch UI
+                if (signInBtn != null) {
+                    signInBtn.setEnabled(true);
+                    signInBtn.setText("Sign in");
+                }
+                try {
+                    if (get()) {
+                        onLoginSuccess.run();
+                    } else {
+                        String msg = service.getLastMessage().isEmpty()
+                                ? "Incorrect email or password. Please try again."
+                                : service.getLastMessage();
+                        showStatus(msg, true);
+                        passwordField.setText("");
+                        passwordField.requestFocus();
+                    }
+                } catch (Exception ex) {
+                    showStatus("An unexpected error occurred. Please try again.", true);
+                }
+            }
+        }.execute();
+    }
+
+    /** Recursively searches for a JButton with text "Sign in". */
+    private static JButton findSignInButton(java.awt.Container container) {
+        for (java.awt.Component c : container.getComponents()) {
+            if (c instanceof JButton b && "Sign in".equals(b.getText())) {
+                return b;
+            }
+            if (c instanceof java.awt.Container sub) {
+                JButton found = findSignInButton(sub);
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 }
+
