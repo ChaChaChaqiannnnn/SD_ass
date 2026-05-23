@@ -13,6 +13,8 @@ import java.util.List;
 public class CustomerDashboard extends JPanel {
     private final ShopEaseService service;
     private final Runnable onLogout;
+    private static final String SEARCH_PLACEHOLDER = "Search products...";
+
     private JPanel productsPanel;
     private List<Product> allProducts;
     private JLabel statusLabel;
@@ -81,7 +83,23 @@ public class CustomerDashboard extends JPanel {
         searchField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(220, 224, 232)),
                 new EmptyBorder(10, 12, 10, 12)));
-        searchField.setToolTipText("Search by product name");
+        // Placeholder text
+        searchField.setForeground(ShopEaseUIUtils.TEXT_MUTED);
+        searchField.setText(SEARCH_PLACEHOLDER);
+        searchField.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent e) {
+                if (searchField.getText().equals(SEARCH_PLACEHOLDER)) {
+                    searchField.setText("");
+                    searchField.setForeground(ShopEaseUIUtils.TEXT_PRIMARY);
+                }
+            }
+            public void focusLost(java.awt.event.FocusEvent e) {
+                if (searchField.getText().isEmpty()) {
+                    searchField.setForeground(ShopEaseUIUtils.TEXT_MUTED);
+                    searchField.setText(SEARCH_PLACEHOLDER);
+                }
+            }
+        });
         searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(searchField); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(searchField); }
@@ -89,22 +107,27 @@ public class CustomerDashboard extends JPanel {
         });
         centerPanel.add(searchField, BorderLayout.NORTH);
 
-        productsPanel = new JPanel(new GridLayout(0, 1, 12, 12));
+        productsPanel = new JPanel(new GridLayout(0, 2, 12, 12));
         productsPanel.setOpaque(false);
         productsPanel.setBorder(new EmptyBorder(8, 0, 8, 0));
 
         JScrollPane scrollPane = new JScrollPane(productsPanel);
-        scrollPane.setBorder(null);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
+        scrollPane.getViewport().setBorder(null);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
         scrollPane.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent e) {
-                int width = scrollPane.getWidth();
-                int cols = Math.max(1, width / 320);
-                productsPanel.setLayout(new GridLayout(0, cols, 12, 12));
-                productsPanel.revalidate();
+                SwingUtilities.invokeLater(() -> {
+                    int width = scrollPane.getViewport().getWidth();
+                    int cols = Math.max(1, width / 460);
+                    productsPanel.setLayout(new GridLayout(0, cols, 12, 12));
+                    productsPanel.revalidate();
+                    productsPanel.repaint();
+                });
             }
         });
 
@@ -141,7 +164,8 @@ public class CustomerDashboard extends JPanel {
     }
 
     private void applyFilter(JTextField searchField) {
-        lastSearchFilter = searchField.getText().toLowerCase();
+        String text = searchField.getText();
+        lastSearchFilter = text.equals(SEARCH_PLACEHOLDER) ? "" : text.toLowerCase();
         renderProducts(lastSearchFilter);
     }
 

@@ -63,7 +63,7 @@ public class AdminDashboard extends JPanel {
         body.setBorder(new EmptyBorder(0, 0, 16, 16));
 
         JPanel sidebar = buildSidebar();
-        sidebar.setPreferredSize(new Dimension(200, 0));
+        sidebar.setPreferredSize(new Dimension(220, 0));
         body.add(sidebar, BorderLayout.WEST);
 
         contentLayout = new CardLayout();
@@ -103,8 +103,11 @@ public class AdminDashboard extends JPanel {
 
         sidebar.add(Box.createVerticalGlue());
 
-        JButton logoutBtn = navButton("Logout");
-        logoutBtn.setBackground(new Color(192, 57, 43));
+        JButton logoutBtn = new JButton("Logout");
+        logoutBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        logoutBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        logoutBtn.setHorizontalAlignment(SwingConstants.LEFT);
+        ShopEaseUIUtils.styleDarkButton(logoutBtn, new Color(192, 57, 43));
         logoutBtn.addActionListener(e -> {
             service.logout();
             onLogout.run();
@@ -119,14 +122,7 @@ public class AdminDashboard extends JPanel {
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
         btn.setHorizontalAlignment(SwingConstants.LEFT);
-        btn.setFont(ShopEaseUIUtils.bodyFont());
-        btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(12, 14, 12, 14));
-        btn.setOpaque(true);
-        btn.setBorderPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBackground(new Color(44, 62, 80));
-        btn.setForeground(new Color(236, 240, 241));
+        ShopEaseUIUtils.styleNavButton(btn);
         return btn;
     }
 
@@ -143,13 +139,9 @@ public class AdminDashboard extends JPanel {
 
     private void styleNav(JButton btn, boolean active) {
         if (active) {
-            btn.setBackground(new Color(52, 152, 219));
-            btn.setForeground(Color.WHITE);
-            btn.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
+            ShopEaseUIUtils.styleDarkButton(btn, new Color(52, 152, 219));
         } else {
-            btn.setBackground(new Color(44, 62, 80));
-            btn.setForeground(new Color(236, 240, 241));
-            btn.setFont(ShopEaseUIUtils.bodyFont());
+            ShopEaseUIUtils.styleNavButton(btn);
         }
     }
 
