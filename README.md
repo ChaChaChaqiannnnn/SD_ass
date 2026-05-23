@@ -4,25 +4,18 @@ A premium Java Swing e-commerce application prototype with complete business log
 
 ---
 
-## 📋 Prerequisites
+## 🍎 macOS & Linux Setup & Guide
 
-Before compiling or running the project, ensure you have the following installed and set up:
+Follow these steps if you are running macOS or Linux.
 
-- **JDK 11+** (Tested and compatible with JDK 17, 21, and 24).
+### 1. Prerequisites (macOS/Linux)
+- **JDK 11+** installed (Tested and compatible with JDK 17, 21, and 24).
 - **sqlite-jdbc.jar** located in the `lib/` directory.
   > [!IMPORTANT]
   > If the SQLite jar is missing or corrupted, download a fresh copy of the SQLite JDBC library from [Maven Central](https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/) and place it in the `lib/` folder as `lib/sqlite-jdbc.jar`.
 
----
-
-## 💻 Compilation & Running Guide
-
-Choose the guide corresponding to your operating system below:
-
-### 🍎 macOS & Linux
-
-#### 1. Compile the Project
-Open your Terminal, navigate to the project directory, make the scripts executable, and compile:
+### 2. Compile the Project (macOS/Linux)
+Open your Terminal, navigate to the project directory, and compile the code using:
 ```bash
 # Make scripts executable (only needed once)
 chmod +x compile.sh run-gui.sh
@@ -30,25 +23,27 @@ chmod +x compile.sh run-gui.sh
 # Run compilation script
 ./compile.sh
 ```
-*Alternatively, you can compile manually without the script:*
+
+*Alternatively, compile manually without using the script:*
 ```bash
 find code -name "*.java" > sources.txt
 mkdir -p bin
 javac -encoding UTF-8 -d bin -cp "lib/sqlite-jdbc.jar" @sources.txt
 ```
 
-#### 2. Run the Application (GUI)
-Launch the graphical interface using:
+### 3. Run the GUI (macOS/Linux)
+Launch the main application interface using:
 ```bash
 ./run-gui.sh
 ```
+
 *Alternatively, run the application class manually:*
 ```bash
 java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.ui.ShopEaseApp
 ```
 
-#### 3. Run System Tests & Smoke Tests
-To verify all application systems, run the unit/integration tests:
+### 4. Run Tests (macOS/Linux)
+To verify all systems and run automated unit/integration tests:
 ```bash
 # Full System test verification suite
 java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.FullSystemTest
@@ -59,31 +54,41 @@ java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.SmokeTest
 
 ---
 
-### 🪟 Windows
+## 🪟 Windows Setup & Guide
 
-#### 1. Compile the Project
-Open **Command Prompt** (cmd) or **PowerShell**, navigate to the project directory, and run:
+Follow these steps if you are running Windows.
+
+### 1. Prerequisites (Windows)
+- **JDK 11+** installed (Tested and compatible with JDK 17, 21, and 24).
+- **sqlite-jdbc.jar** located in the `lib\` directory.
+  > [!IMPORTANT]
+  > If the SQLite jar is missing or corrupted, download a fresh copy of the SQLite JDBC library from [Maven Central](https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/) and place it in the `lib\` folder as `lib\sqlite-jdbc.jar`.
+
+### 2. Compile the Project (Windows)
+Open **Command Prompt** (cmd) or **PowerShell**, navigate to the project directory, and compile:
 ```cmd
 .\compile.bat
 ```
-*Alternatively, you can compile manually without the batch script:*
+
+*Alternatively, compile manually without using the script:*
 ```cmd
 dir /s /b code\*.java > sources.txt
 if not exist bin mkdir bin
 javac -encoding UTF-8 -d bin -cp "lib\sqlite-jdbc.jar" @sources.txt
 ```
 
-#### 2. Run the Application (GUI)
-Launch the graphical interface using:
+### 3. Run the GUI (Windows)
+Launch the main application interface using:
 ```cmd
 .\run-gui.bat
 ```
+
 *Alternatively, run the application class manually (note that Windows uses `;` as the classpath separator):*
 ```cmd
 java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.ui.ShopEaseApp
 ```
 
-#### 3. Run System Tests & Smoke Tests
+### 4. Run Tests (Windows)
 To run the automated tests on Windows:
 ```cmd
 # Full System test verification suite
@@ -95,7 +100,7 @@ java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.SmokeTest
 
 ---
 
-## 🔑 Default Credentials
+## 🔑 Default Credentials (Shared)
 
 The database file `shopease.db` is automatically created in the root directory upon the first run. The system comes pre-seeded with the following admin account:
 
