@@ -4,6 +4,8 @@ import com.shopease.dao.UserDAO;
 import com.shopease.model.Admin;
 import com.shopease.model.Customer;
 import com.shopease.model.User;
+import com.shopease.util.CustomerIdGenerator;
+import com.shopease.util.UserAccountUtils;
 
 public class CreateCustomerUserStrategy {
 
@@ -25,15 +27,16 @@ public class CreateCustomerUserStrategy {
             result.message = "Password must be at least 4 characters.";
             return false;
         }
-        String trimmedEmail = email.trim();
+        String trimmedEmail = UserAccountUtils.normalizeEmail(email);
+        if (!UserAccountUtils.isValidEmail(trimmedEmail)) {
+            result.message = "Valid email is required.";
+            return false;
+        }
         if (userDAO.getUserByEmail(trimmedEmail) != null) {
             result.message = "Email is already registered.";
             return false;
         }
-        String userId = "CUST-" + System.currentTimeMillis();
-        while (userDAO.getUserById(userId) != null) {
-            userId = "CUST-" + System.currentTimeMillis();
-        }
+        String userId = CustomerIdGenerator.nextId();
         Customer customer = new Customer(userId, name.trim(), trimmedEmail, password);
         if (!userDAO.insertUser(customer)) {
             result.message = "Could not create customer.";

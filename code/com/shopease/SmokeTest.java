@@ -22,6 +22,17 @@ public class SmokeTest {
         }
 
         if (!s.login(email, "pass")) fail("customer login");
+
+        long ts2 = System.currentTimeMillis() + 1;
+        String mixedEmail = "User" + ts2 + "@Test.MY";
+        String normEmail = mixedEmail.toLowerCase();
+        if (!s.registerCustomer(new Customer("CUST-reg-" + ts2, "Case Test", mixedEmail, "pass"))) {
+            fail("register mixed case: " + s.getLastMessage());
+        }
+        s.logout();
+        if (!s.login(normEmail, "pass")) fail("login normalized email: " + s.getLastMessage());
+        s.logout();
+        if (!s.login(email, "pass")) fail("customer re-login after case test");
         Product mouse = s.getProductById("MSE-02");
         if (mouse.getStockQuantity() < 2) {
             s.logout();

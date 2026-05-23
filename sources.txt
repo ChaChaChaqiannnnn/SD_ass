@@ -11,7 +11,9 @@ code/com/shopease/ui/CustomerDashboard.java
 code/com/shopease/ui/LoginPanel.java
 code/com/shopease/ui/CartDialog.java
 code/com/shopease/SmokeTest.java
+code/com/shopease/util/CustomerIdGenerator.java
 code/com/shopease/util/OrderIdGenerator.java
+code/com/shopease/util/UserAccountUtils.java
 code/com/shopease/dao/DatabaseConnection.java
 code/com/shopease/dao/WishlistDAO.java
 code/com/shopease/dao/UserDAO.java

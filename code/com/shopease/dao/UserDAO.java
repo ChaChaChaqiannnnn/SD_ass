@@ -19,19 +19,25 @@ public class UserDAO {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, user.getUserId());
             pstmt.setString(2, user.getName());
-            pstmt.setString(3, user.getEmail());
+            pstmt.setString(3, user.getEmail().trim().toLowerCase());
             pstmt.setString(4, user.getPassword());
             pstmt.setString(5, user instanceof Admin ? "ADMIN" : "CUSTOMER");
             pstmt.executeUpdate();
             return true;
         } catch (SQLException e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "";
-            if (msg.contains("UNIQUE") || msg.contains("constraint")) {
-                return false;
-            }
-            System.err.println("Error inserting user: " + msg);
+            System.err.println("Error inserting user: " + e.getMessage());
             return false;
         }
+    }
+
+    public String lastInsertErrorKind(User user) {
+        if (getUserById(user.getUserId()) != null) {
+            return "id";
+        }
+        if (getUserByEmail(user.getEmail()) != null) {
+            return "email";
+        }
+        return "unknown";
     }
 
     public List<User> getAllUsers() {
@@ -94,10 +100,10 @@ public class UserDAO {
     }
 
     public boolean emailUsedByOtherUser(String email, String excludeUserId) {
-        String sql = "SELECT 1 FROM users WHERE email = ? AND id != ?";
+        String sql = "SELECT 1 FROM users WHERE LOWER(email) = LOWER(?) AND id != ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, email);
+            pstmt.setString(1, email == null ? "" : email.trim());
             pstmt.setString(2, excludeUserId);
             try (ResultSet rs = pstmt.executeQuery()) {
                 return rs.next();
@@ -125,10 +131,10 @@ public class UserDAO {
     }
 
     public User getUserByEmail(String email) {
-        String sql = "SELECT * FROM users WHERE email = ?";
+        String sql = "SELECT * FROM users WHERE LOWER(email) = LOWER(?)";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, email);
+            pstmt.setString(1, email == null ? "" : email.trim());
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     return mapUser(rs);

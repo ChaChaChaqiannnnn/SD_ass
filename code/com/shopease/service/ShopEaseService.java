@@ -11,7 +11,9 @@ import com.shopease.observer.*;
 import com.shopease.singleton.ShopEaseCartSingleton;
 import com.shopease.singleton.ShopEaseWishlistSingleton;
 import com.shopease.strategy.*;
+import com.shopease.util.CustomerIdGenerator;
 import com.shopease.util.OrderIdGenerator;
+import com.shopease.util.UserAccountUtils;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -63,7 +65,7 @@ public class ShopEaseService {
             lastMessage = "Email and password are required.";
             return false;
         }
-        String trimmedEmail = email.trim();
+        String trimmedEmail = UserAccountUtils.normalizeEmail(email);
         User user = userDAO.getUserByEmail(trimmedEmail);
         if (user != null && user.getPassword().equals(password)) {
             this.currentUser = user;
@@ -87,22 +89,47 @@ public class ShopEaseService {
 
     public boolean registerCustomer(User customer) {
         lastMessage = "";
-        if (customer == null || customer.getEmail() == null || customer.getEmail().trim().isEmpty()) {
-            lastMessage = "Email is required.";
+        if (customer == null) {
+            lastMessage = "Invalid registration data.";
             return false;
         }
-        if (userDAO.getUserByEmail(customer.getEmail().trim()) != null) {
+        if (customer.getName() == null || customer.getName().trim().isEmpty()) {
+            lastMessage = "Name is required.";
+            return false;
+        }
+        String email = UserAccountUtils.normalizeEmail(customer.getEmail());
+        if (!UserAccountUtils.isValidEmail(email)) {
+            lastMessage = "Valid email is required.";
+            return false;
+        }
+        if (customer.getPassword() == null || customer.getPassword().length() < 4) {
+            lastMessage = "Password must be at least 4 characters.";
+            return false;
+        }
+        String userId = customer.getUserId();
+        if (userId == null || userId.isBlank()) {
+            userId = CustomerIdGenerator.nextId();
+        }
+        if (userDAO.getUserByEmail(email) != null) {
             lastMessage = "An account with this email already exists.";
             return false;
         }
-        if (userDAO.getUserById(customer.getUserId()) != null) {
-            lastMessage = "User ID already exists. Please try again.";
+        if (userDAO.getUserById(userId) != null) {
+            userId = CustomerIdGenerator.nextId();
+        }
+        Customer toSave = new Customer(userId, customer.getName().trim(), email, customer.getPassword());
+        if (!userDAO.insertUser(toSave)) {
+            String kind = userDAO.lastInsertErrorKind(toSave);
+            if ("email".equals(kind)) {
+                lastMessage = "An account with this email already exists.";
+            } else if ("id".equals(kind)) {
+                lastMessage = "Could not assign a unique user ID. Please try again.";
+            } else {
+                lastMessage = "Registration failed. Please try again.";
+            }
             return false;
         }
-        if (!userDAO.insertUser(customer)) {
-            lastMessage = "Registration failed. Please try again.";
-            return false;
-        }
+        lastMessage = "Account created successfully.";
         return true;
     }
 

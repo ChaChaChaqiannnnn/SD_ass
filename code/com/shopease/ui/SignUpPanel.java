@@ -2,6 +2,8 @@ package com.shopease.ui;
 
 import com.shopease.model.Customer;
 import com.shopease.service.ShopEaseService;
+import com.shopease.util.CustomerIdGenerator;
+import com.shopease.util.UserAccountUtils;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -120,7 +122,7 @@ public class SignUpPanel extends JPanel {
 
     private void attemptSignUp() {
         String name = nameField.getText().trim();
-        String email = emailField.getText().trim();
+        String email = UserAccountUtils.normalizeEmail(emailField.getText());
         String pass = new String(passwordField.getPassword());
         String confirm = new String(confirmPasswordField.getPassword());
 
@@ -129,12 +131,7 @@ public class SignUpPanel extends JPanel {
             nameField.requestFocus();
             return;
         }
-        if (email.isEmpty()) {
-            showStatus("Please enter your email.", true);
-            emailField.requestFocus();
-            return;
-        }
-        if (!email.contains("@")) {
+        if (!UserAccountUtils.isValidEmail(email)) {
             showStatus("Please enter a valid email address.", true);
             emailField.requestFocus();
             return;
@@ -156,7 +153,7 @@ public class SignUpPanel extends JPanel {
             return;
         }
 
-        Customer customer = new Customer("CUST-" + System.currentTimeMillis(), name, email, pass);
+        Customer customer = new Customer(CustomerIdGenerator.nextId(), name, email, pass);
         if (service.registerCustomer(customer)) {
             clearFields();
             onSignUpSuccess.run();
