@@ -10,7 +10,7 @@ import java.util.Scanner;
 
 /**
  * Main entry point for the ShopEase E-Commerce System.
- * Demonstrates Observer, Strategy, and Singleton design patterns
+ * Uses the Observer, Strategy, and Singleton design patterns throughout the codebase.
  * within a localized Malaysian context.
  *
  * @author Group 5
@@ -325,7 +325,7 @@ public class Main {
     }
 
     /**
-     * Checkout using the ShopEase Strategy Design Pattern.
+     * Handle the checkout process using our payment strategies.
      * ShopEasePaymentContext delegates to the selected ShopEasePaymentStrategy.
      */
     private static void checkout() {
@@ -356,7 +356,7 @@ public class Main {
         }
 
         try {
-            // Strategy Pattern: select a ShopEasePaymentStrategy based on user input
+            // dynamically select which payment strategy to use based on what they picked
             ShopEasePaymentStrategy selectedStrategy;
             switch (type) {
                 case "1": selectedStrategy = new ShopEaseCreditCardStrategy(); break;

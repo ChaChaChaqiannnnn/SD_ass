@@ -325,7 +325,7 @@ public class AdminUsersPanel extends JPanel {
                 return;
             }
             // SwingWorker — createCustomerAsAdmin SQLite write off the EDT
-            // Strategy pattern — CreateCustomerUserStrategy handles validation + persistence
+            // pass the new user data to the service layer for validation and saving
             final String fn = name, fe = email, fp = pass;
             new javax.swing.SwingWorker<Boolean, Void>() {
                 @Override protected Boolean doInBackground() {
@@ -353,7 +353,7 @@ public class AdminUsersPanel extends JPanel {
             return;
         }
         // SwingWorker — updateCustomerAsAdmin SQLite write off the EDT
-        // Strategy pattern — UpdateCustomerUserStrategy handles validation + persistence
+        // let the service handle the update logic
         final String uid = u.getUserId();
         final String fn2 = name, fe2 = email, fp2 = pass;
         new javax.swing.SwingWorker<Boolean, Void>() {
@@ -392,7 +392,7 @@ public class AdminUsersPanel extends JPanel {
             return;
         }
         // SwingWorker — deleteUserAsAdmin SQLite write off the EDT
-        // Strategy pattern — DeleteCustomerUserStrategy handles cascade + persistence
+        // service will safely delete the user and their related data
         final String uid = u.getUserId();
         new javax.swing.SwingWorker<Boolean, Void>() {
             @Override protected Boolean doInBackground() {
