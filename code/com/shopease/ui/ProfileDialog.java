@@ -100,7 +100,7 @@ public class ProfileDialog extends JDialog {
             new javax.swing.SwingWorker<Boolean, Void>() {
                 @Override
                 protected Boolean doInBackground() {
-                    // using a strategy to handle the profile update securely
+                    // Strategy pattern — delegates to CustomerProfileUpdateStrategy
                     return service.updateCustomerProfile(finalName, finalEmail, finalPass);
                 }
 

@@ -214,7 +214,7 @@ public class ShopEaseService {
         }
     }
 
-    /** Let the UI know if the user already has items in their cart after logging in. */
+    /** Observer pattern: notify customer if Singleton cart has items after login. */
     public void publishCartReminderIfNeeded() {
         syncCartWithDatabase();
         int count = getCartItemCount();

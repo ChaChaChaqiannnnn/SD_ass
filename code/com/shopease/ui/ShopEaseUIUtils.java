@@ -113,7 +113,7 @@ public final class ShopEaseUIUtils {
      * Styles a button for use on dark-background admin panels (coloured variant).
      * Delegates through the shared path so Nimbus renders it correctly on Windows.
      *
-     * We use this in AdminInventoryPanel and AdminUsersPanel so we don't
+     * Design Pattern: used by AdminInventoryPanel and AdminUsersPanel to avoid
      * duplicating private styleButton() methods that bypass cross-platform rendering.
      */
     public static void styleDarkButton(JButton btn, Color bg) {

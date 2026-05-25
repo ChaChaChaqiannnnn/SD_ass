@@ -198,14 +198,14 @@ public class CustomerDashboard extends JPanel {
         } else {
             ShopEaseUIUtils.styleButton(wishBtn, new Color(155, 89, 182));
         }
-        // attaching the observer so the dashboard updates automatically if cart or wishlist changes
+        // Observer pattern — wishlist/cart changes notify ShopEaseUiRefreshObserver → refreshAll()
         wishBtn.addActionListener(e -> {
             wishBtn.setEnabled(false);
             // SwingWorker — wishlist DB read/write off the EDT
             new javax.swing.SwingWorker<Void, Void>() {
                 @Override
                 protected Void doInBackground() {
-                    // interacting with the wishlist through our service layer
+                    // Strategy pattern — singleton wishlist delegates to WishlistDAO
                     if (service.isInWishlist(p.getProductId())) {
                         service.removeFromWishlist(p.getProductId());
                     } else {
@@ -243,7 +243,7 @@ public class CustomerDashboard extends JPanel {
                         if (latest == null) {
                             return null;
                         }
-                        // updating the single cart instance in the background
+                        // Singleton pattern — ShopEaseCartSingleton.getInstance() used inside
                         service.addToCart(latest, qty);
                         return null;
                     }

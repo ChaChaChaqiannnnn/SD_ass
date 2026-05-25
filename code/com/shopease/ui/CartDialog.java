@@ -90,7 +90,7 @@ public class CartDialog extends JDialog {
         payRow.setOpaque(false);
         payRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         payRow.add(new JLabel("Payment:"));
-        // grab the available payment options from our provider class
+        // Strategy pattern — options sourced from ShopEasePaymentStrategyProvider
         paymentCombo = new JComboBox<>(ShopEasePaymentStrategyProvider.ALL_METHODS);
         paymentCombo.setFont(ShopEaseUIUtils.bodyFont());
         payRow.add(paymentCombo);
@@ -245,7 +245,7 @@ public class CartDialog extends JDialog {
             return;
         }
 
-        // figure out which payment strategy to use based on what the user selected
+        // Strategy pattern — strategy created from display name via ShopEasePaymentStrategyProvider
         final String paymentName = (String) paymentCombo.getSelectedItem();
         final ShopEasePaymentStrategy strategy =
                 ShopEasePaymentStrategyProvider.create(paymentName);
@@ -263,7 +263,7 @@ public class CartDialog extends JDialog {
         new javax.swing.SwingWorker<Boolean, Void>() {
             @Override
             protected Boolean doInBackground() {
-                // let the strategy handle the actual checkout process
+                // Strategy pattern — delegates to the concrete payment implementation
                 return service.checkout(strategy);
             }
 

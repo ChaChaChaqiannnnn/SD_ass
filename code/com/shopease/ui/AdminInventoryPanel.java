@@ -172,7 +172,7 @@ public class AdminInventoryPanel extends JPanel {
             return;
         }
         // SwingWorker — moves SQLite stock update off the EDT to prevent Windows freeze
-        // service layer handles the actual updating logic so the UI stays clean
+        // Strategy pattern — ShopEaseService delegates to AdminUserActionStrategy internally
         final String productId = p.getProductId();
         new javax.swing.SwingWorker<Boolean, Void>() {
             @Override
@@ -249,7 +249,7 @@ public class AdminInventoryPanel extends JPanel {
             return;
         }
         // SwingWorker — moves SQLite undo write off the EDT
-        // basically an undo function that reverses the last restock action
+        // Command pattern analogue — undoLastRestock() reverses the last AdminActivityLog entry
         new javax.swing.SwingWorker<Boolean, Void>() {
             @Override
             protected Boolean doInBackground() {

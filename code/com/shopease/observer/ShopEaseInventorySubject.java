@@ -29,7 +29,7 @@ public class ShopEaseInventorySubject implements ShopEaseSubject {
         }
     }
 
-    /** Sends out an update to all the listening UI components. */
+    /** Publishes any app event to registered observers (Observer pattern). */
     public void publishEvent(String event, String detail) {
         notifyObservers(event, detail);
     }
