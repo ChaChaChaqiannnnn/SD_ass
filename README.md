@@ -134,5 +134,5 @@ TT2L_G5_ShopEaseEcommerceSystem/
 ## 🎨 Implemented Design Patterns
 
 * **Singleton**: Applied to [DatabaseConnection](file:///Users/serenehong/Desktop/TT2L_G5_ShopEaseEcommerceSystem/code/com/shopease/dao/DatabaseConnection.java) to manage a single connection instance and `ShopEaseCartSingleton` to maintain a single cart context per customer session.
-* **Strategy Pattern**: Used to encapsulate different payment methods (Credit Card, MAE, DNG, Touch 'n Go) with a unified factory interface in [ShopEasePaymentStrategyFactory](file:///Users/serenehong/Desktop/TT2L_G5_ShopEaseEcommerceSystem/code/com/shopease/strategy/ShopEasePaymentStrategyFactory.java).
+* **Strategy Pattern**: Used to encapsulate different payment methods (Credit Card, MAE, DNG, Touch 'n Go) with a unified provider interface in [ShopEasePaymentStrategyProvider](file:///Users/serenehong/Desktop/TT2L_G5_ShopEaseEcommerceSystem/code/com/shopease/strategy/ShopEasePaymentStrategyProvider.java).
 * **Observer Pattern**: Implements low-stock alerts dynamically notifying admin systems when stock is reduced below thresholds.

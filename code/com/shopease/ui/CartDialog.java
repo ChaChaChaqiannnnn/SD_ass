@@ -90,8 +90,8 @@ public class CartDialog extends JDialog {
         payRow.setOpaque(false);
         payRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         payRow.add(new JLabel("Payment:"));
-        // Factory pattern — options sourced from ShopEasePaymentStrategyFactory
-        paymentCombo = new JComboBox<>(ShopEasePaymentStrategyFactory.ALL_METHODS);
+        // Strategy pattern — options sourced from ShopEasePaymentStrategyProvider
+        paymentCombo = new JComboBox<>(ShopEasePaymentStrategyProvider.ALL_METHODS);
         paymentCombo.setFont(ShopEaseUIUtils.bodyFont());
         payRow.add(paymentCombo);
         footer.add(payRow);
@@ -245,10 +245,10 @@ public class CartDialog extends JDialog {
             return;
         }
 
-        // Factory pattern — strategy created from display name via ShopEasePaymentStrategyFactory
+        // Strategy pattern — strategy created from display name via ShopEasePaymentStrategyProvider
         final String paymentName = (String) paymentCombo.getSelectedItem();
         final ShopEasePaymentStrategy strategy =
-                ShopEasePaymentStrategyFactory.create(paymentName);
+                ShopEasePaymentStrategyProvider.create(paymentName);
 
         // Snapshot cart before the async call (cart is cleared on success)
         final java.util.List<CartItem> snapshot =

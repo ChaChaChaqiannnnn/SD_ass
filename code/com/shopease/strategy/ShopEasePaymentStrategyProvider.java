@@ -1,7 +1,7 @@
 package com.shopease.strategy;
 
 /**
- * ShopEasePaymentStrategyFactory — Factory Pattern
+ * ShopEasePaymentStrategyProvider — Strategy Provider
  * =================================================
  * Centralises payment strategy creation so that no UI class needs to know
  * which concrete strategy class maps to which display name.
@@ -10,10 +10,10 @@ package com.shopease.strategy;
  *   1. A new ShopEasePaymentStrategy implementation.
  *   2. One new case here.
  *
- * Design Pattern: Factory Method
+ * Design Pattern: Strategy (Provider)
  * Used by: CartDialog.doCheckout()
  */
-public final class ShopEasePaymentStrategyFactory {
+public final class ShopEasePaymentStrategyProvider {
 
     /** Display names shown in the payment combo-box. */
     public static final String CREDIT_CARD = "Credit Card";
@@ -26,7 +26,7 @@ public final class ShopEasePaymentStrategyFactory {
         CREDIT_CARD, DUIT_NOW, MAE, TNG
     };
 
-    private ShopEasePaymentStrategyFactory() {}
+    private ShopEasePaymentStrategyProvider() {}
 
     /**
      * Creates and returns the payment strategy for the given display name.

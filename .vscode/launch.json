@@ -3,6 +3,20 @@
     "configurations": [
         {
             "type": "java",
+            "name": "ShopEaseApp",
+            "request": "launch",
+            "mainClass": "com.shopease.ui.ShopEaseApp",
+            "projectName": "TT2L_G5_ShopEaseEcommerceSystem_9234c2ef"
+        },
+        {
+            "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "com.shopease.Main",
+            "projectName": "TT2L_G5_ShopEaseEcommerceSystem_9234c2ef"
+        },
+        {
+            "type": "java",
             "name": "ShopEase GUI",
             "request": "launch",
             "mainClass": "com.shopease.ui.ShopEaseApp",
