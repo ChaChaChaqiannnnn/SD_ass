@@ -102,6 +102,12 @@ public class ShopEaseApp extends JFrame {
     }
 
     public static void main(String[] args) {
+        // Fix for High DPI (scaling) issues on Windows
+        if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+            System.setProperty("sun.java2d.dpiaware", "true");
+            System.setProperty("sun.java2d.uiScale", "1.5"); // Adjust 1.25, 1.5, or 2.0 based on screen size
+        }
+
         SwingUtilities.invokeLater(() -> {
             // Use Nimbus — cross-platform, ships with every JDK, respects setBackground()
             // on custom-painted buttons (unlike the Windows native L&F which ignores it).
