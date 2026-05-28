@@ -90,12 +90,34 @@ public final class ShopEaseUIUtils {
                 g2.setColor(fill);
                 g2.fillRoundRect(0, 0, c.getWidth(), c.getHeight(), 8, 8);
                 g2.dispose();
-                super.paint(g, c);
+                paintFlatButtonText(g, c, buttonFont, fg);
             }
         });
         // Set AFTER setUI() — BasicButtonUI.installDefaults() resets font/foreground to LAF defaults.
         btn.setForeground(fg);
         btn.setFont(buttonFont);
+    }
+
+    /** Flat label text — avoids macOS/Metal embossed button text over custom fills. */
+    private static void paintFlatButtonText(Graphics g, JComponent c, Font font, Color fg) {
+        AbstractButton b = (AbstractButton) c;
+        String text = b.getText();
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+        Graphics2D tg = (Graphics2D) g.create();
+        tg.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        tg.setFont(font);
+        if (!b.isEnabled()) {
+            tg.setColor(new Color(fg.getRed(), fg.getGreen(), fg.getBlue(), 170));
+        } else {
+            tg.setColor(fg);
+        }
+        FontMetrics fm = tg.getFontMetrics();
+        int textX = (c.getWidth() - fm.stringWidth(text)) / 2;
+        int textY = ((c.getHeight() - fm.getHeight()) / 2) + fm.getAscent();
+        tg.drawString(text, textX, textY);
+        tg.dispose();
     }
 
     public static JLabel createMutedLabel(String text) {

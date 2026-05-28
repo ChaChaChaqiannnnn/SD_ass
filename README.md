@@ -11,8 +11,7 @@ A Java Swing e-commerce application with SQLite database, Observer / Singleton /
 | Step | macOS / Apple (Terminal) | Windows (Command Prompt) |
 |------|--------------------------|---------------------------|
 | **1. Compile** | `./compile.sh` | `compile.bat` |
-| **2. Run GUI** | `./run-gui.sh` | `run-gui.bat` |
-| **3. Run all tests** | `./run-tests.sh` | `run-tests.bat` |
+| **2. Run GUI** | `./run-gui.sh` | `run-gui.bat` or `setup-windows.bat` *(compile + run)* |
 
 **Requirements (both platforms):**
 - JDK 11 or newer (17, 21, 24 tested)
@@ -20,7 +19,7 @@ A Java Swing e-commerce application with SQLite database, Observer / Singleton /
 
 **First time on Mac only** — make scripts executable:
 ```bash
-chmod +x compile.sh run-gui.sh run-tests.sh
+chmod +x compile.sh run-gui.sh   # once only
 ```
 
 **Windows users in Git Bash** can also run `./compile.sh` and `./run-gui.sh` like Mac users.
@@ -37,7 +36,7 @@ chmod +x compile.sh run-gui.sh run-tests.sh
 
 ### 2. Compile
 ```bash
-chmod +x compile.sh run-gui.sh run-tests.sh   # once only
+chmod +x compile.sh run-gui.sh   # once only
 ./compile.sh
 ```
 
@@ -58,18 +57,6 @@ Manual run (classpath uses `:` on Mac):
 java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.ui.ShopEaseApp
 ```
 
-### 4. Run tests
-```bash
-./run-tests.sh
-```
-
-Or individually:
-```bash
-java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.SmokeTest
-java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.FeatureTest
-java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.FullSystemTest
-```
-
 ---
 
 ## Windows — detailed steps
@@ -84,9 +71,14 @@ Open **Command Prompt** or **PowerShell** in the project folder:
 compile.bat
 ```
 
+**One-click compile + run:**
+```cmd
+setup-windows.bat
+```
+
 Manual compile:
 ```cmd
-dir /s /b code\*.java > sources.txt
+for /r code %f in (*.java) do @echo %f>>sources.txt
 if not exist bin mkdir bin
 javac -encoding UTF-8 -d bin -cp "lib\sqlite-jdbc.jar" @sources.txt
 ```
@@ -99,18 +91,6 @@ run-gui.bat
 Manual run (classpath uses `;` on Windows):
 ```cmd
 java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.ui.ShopEaseApp
-```
-
-### 4. Run tests
-```cmd
-run-tests.bat
-```
-
-Or individually:
-```cmd
-java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.SmokeTest
-java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.FeatureTest
-java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.FullSystemTest
 ```
 
 ---
@@ -143,11 +123,11 @@ TT2L_G5_ShopEaseEcommerceSystem/
 │   ├── singleton/  # One cart / wishlist per customer
 │   ├── strategy/   # Payment, profile, admin user CRUD
 │   ├── service/    # Business logic (ShopEaseService)
-│   └── ui/         # Swing GUI screens
+│   └── ui/         # Swing GUI (entry: ShopEaseApp)
 ├── lib/sqlite-jdbc.jar
 ├── compile.sh / compile.bat
-├── run-gui.sh / run-gui.bat
-└── run-tests.sh / run-tests.bat
+├── setup-windows.bat   ← Windows: compile + run in one step
+└── run-gui.sh / run-gui.bat
 ```
 
 ---

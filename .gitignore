@@ -7,6 +7,7 @@ sources.txt
 code/**/*.class
 /com/
 /bin/
+/bin-check/
 
 # Broken or duplicate JAR backup
 lib/*.broken

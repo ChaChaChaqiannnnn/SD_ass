@@ -2,10 +2,10 @@
 *.java text eol=lf
 *.sh text eol=lf
 *.bat text eol=crlf
+WINDOWS_HOW_TO_RUN.txt text eol=crlf
 *.md text eol=lf
 *.json text eol=lf
 
 # Shell scripts must stay executable on Mac/Linux after clone
 compile.sh text eol=lf
 run-gui.sh text eol=lf
-run-tests.sh text eol=lf

@@ -11,28 +11,6 @@
                 "${workspaceFolder}/lib/sqlite-jdbc.jar"
             ],
             "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "java",
-            "name": "Full System Test",
-            "request": "launch",
-            "mainClass": "com.shopease.FullSystemTest",
-            "classPaths": [
-                "${workspaceFolder}/bin",
-                "${workspaceFolder}/lib/sqlite-jdbc.jar"
-            ],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "java",
-            "name": "Smoke Test",
-            "request": "launch",
-            "mainClass": "com.shopease.SmokeTest",
-            "classPaths": [
-                "${workspaceFolder}/bin",
-                "${workspaceFolder}/lib/sqlite-jdbc.jar"
-            ],
-            "cwd": "${workspaceFolder}"
         }
     ]
 }

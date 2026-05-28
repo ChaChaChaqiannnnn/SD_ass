@@ -6,12 +6,12 @@ Before you start
 ----------------
 1. Install Java JDK 11 or newer (JDK 17 or 21 recommended)
    Download: https://adoptium.net/
+   During install, tick "Add to PATH" / "Set JAVA_HOME".
 
 2. Check Java is installed — open Command Prompt and type:
       java -version
       javac -version
-   Both commands should show a version number. If not, reinstall JDK and
-   tick "Add to PATH" during installation.
+   Both commands should show a version number. If not, reinstall JDK.
 
 3. Unzip or clone the project folder, for example:
       C:\Users\YourName\Desktop\TT2L_G5_ShopEaseEcommerceSystem
@@ -19,6 +19,17 @@ Before you start
 4. Make sure this file exists:
       lib\sqlite-jdbc.jar
    (It is included in the repo. If missing, download from Maven Central.)
+
+
+QUICK START (easiest)
+---------------------
+Option A — double-click:
+   setup-windows.bat
+   (Compiles, then opens the ShopEase login window.)
+
+Option B — two commands in Command Prompt:
+   compile.bat
+   run-gui.bat
 
 
 STEP 1 — Open the project folder in Command Prompt
@@ -42,12 +53,13 @@ Type this and press Enter:
    compile.bat
 
 You should see:
-   Compiling 67 source files...
+   Compiling 73 source files...
    Build OK. Classes in bin\
 
 If compile fails:
    - "javac not found" → install JDK and add to PATH
    - "sqlite-jdbc.jar is missing" → check the lib\ folder
+   - "No .java files found" → open cmd in the project ROOT (where compile.bat is)
 
 
 STEP 3 — Run the GUI application
@@ -65,27 +77,15 @@ Default admin login:
 Customers can click "Create account" to register.
 
 
-STEP 4 — Run tests (optional)
-------------------------------
-Type this and press Enter:
-
-   run-tests.bat
-
-Runs SmokeTest, FeatureTest, and FullSystemTest automatically.
-
-
 Manual commands (if you prefer not to use .bat files)
 -----------------------------------------------------
 Compile:
-   dir /s /b code\*.java > sources.txt
+   for /r code %f in (*.java) do @echo %f>>sources.txt
    if not exist bin mkdir bin
    javac -encoding UTF-8 -d bin -cp "lib\sqlite-jdbc.jar" @sources.txt
 
 Run GUI:
    java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.ui.ShopEaseApp
-
-Run one test:
-   java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.SmokeTest
 
 IMPORTANT — Windows uses semicolon (;) in classpath, NOT colon (:)
    Correct:   bin;lib\sqlite-jdbc.jar
@@ -97,7 +97,14 @@ Using PowerShell instead of Command Prompt
 Same commands work — just type:
    .\compile.bat
    .\run-gui.bat
-   .\run-tests.bat
+   .\setup-windows.bat
+
+
+Using Git Bash on Windows
+-------------------------
+You can also use the Mac scripts:
+   ./compile.sh
+   ./run-gui.sh
 
 
 Using VS Code / Cursor on Windows
@@ -106,6 +113,23 @@ Using VS Code / Cursor on Windows
 2. Install "Extension Pack for Java"
 3. Run compile.bat once in the terminal
 4. Press F5 or use Run → "ShopEase GUI (Mac/Windows)"
+
+
+Common problems
+---------------
+Problem: Double-clicking run-gui.bat closes instantly
+Fix: Open cmd first, run compile.bat, then run-gui.bat — read any error text.
+
+Problem: "java is not recognized"
+Fix: Reinstall JDK from Adoptium and enable "Add to PATH".
+
+Problem: GUI looks blurry on high-DPI laptop
+Fix: Already handled in ShopEaseApp for Windows. If still blurry, ask your
+     lecturer — uiScale can be adjusted in ShopEaseApp.java.
+
+Problem: Downloaded from GitHub as ZIP — scripts won't run?
+Fix: .bat files work from ZIP. If blocked, right-click compile.bat →
+     Properties → Unblock → OK.
 
 
 Database file
