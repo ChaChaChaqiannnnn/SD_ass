@@ -228,8 +228,16 @@ public class CartDialog extends JDialog {
         removeBtn.setFont(ShopEaseUIUtils.smallFont());
         removeBtn.setBorder(new EmptyBorder(6, 12, 6, 12));
         removeBtn.addActionListener(e -> {
-            service.removeFromCart(productId);
-            notifyStatus();
+            int confirm = JOptionPane.showConfirmDialog(
+                    CartDialog.this,
+                    "Remove \"" + p.getName() + "\" from your cart?",
+                    "Remove item",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+            if (confirm == JOptionPane.YES_OPTION) {
+                service.removeFromCart(productId);
+                notifyStatus();
+            }
         });
 
         controls.add(new JLabel("Qty:"));

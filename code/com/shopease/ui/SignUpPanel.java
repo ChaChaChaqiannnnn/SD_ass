@@ -82,14 +82,9 @@ public class SignUpPanel extends JPanel {
         switchRow.add(loginLink);
         card.add(switchRow);
 
-        JScrollPane scroll = new JScrollPane(card);
-        scroll.setBorder(null);
-        scroll.getViewport().setBackground(ShopEaseUIUtils.BG_PAGE);
-        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-
         JPanel centerWrap = new JPanel(new GridBagLayout());
         centerWrap.setOpaque(false);
-        centerWrap.add(scroll);
+        centerWrap.add(card);
         add(centerWrap, BorderLayout.CENTER);
     }
 

@@ -42,25 +42,50 @@ public final class ShopEaseUIUtils {
     }
 
     public static void styleSecondaryButton(JButton btn) {
-        btn.setBackground(new Color(236, 240, 241));
-        btn.setForeground(TEXT_PRIMARY);
-        btn.setFont(bodyFont());
-        btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
-        btn.setOpaque(true);
-        btn.setBorderPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        applyFlatStyle(btn, new Color(236, 240, 241), TEXT_PRIMARY, new EmptyBorder(10, 18, 10, 18));
     }
 
     public static void styleButton(JButton btn, Color bg) {
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(bodyFont());
+        applyFlatStyle(btn, bg, Color.WHITE, new EmptyBorder(10, 18, 10, 18));
+    }
+
+    private static void applyFlatStyle(JButton btn, Color bg, Color fg, EmptyBorder padding) {
         btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
-        btn.setOpaque(true);
         btn.setBorderPainted(false);
+        btn.setContentAreaFilled(false);
+        btn.setOpaque(false);
+        btn.setBorder(padding);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
+            @Override
+            public void paint(java.awt.Graphics g, JComponent c) {
+                javax.swing.AbstractButton b = (javax.swing.AbstractButton) c;
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                Color fill;
+                if (!b.isEnabled()) {
+                    fill = new Color(bg.getRed(), bg.getGreen(), bg.getBlue(), 140);
+                } else if (b.getModel().isPressed()) {
+                    fill = bg.darker();
+                } else if (b.getModel().isRollover()) {
+                    fill = new Color(
+                            Math.min(255, bg.getRed() + 22),
+                            Math.min(255, bg.getGreen() + 22),
+                            Math.min(255, bg.getBlue() + 22));
+                } else {
+                    fill = bg;
+                }
+                g2.setColor(fill);
+                g2.fillRoundRect(0, 0, c.getWidth(), c.getHeight(), 8, 8);
+                g2.dispose();
+                super.paint(g, c);
+            }
+        });
+        // Set AFTER setUI() — BasicButtonUI.installDefaults() runs inside setUI() and
+        // resets font/foreground to the LAF default. Setting them last ensures our values win.
+        btn.setForeground(fg);
+        btn.setFont(bodyFont());
     }
 
     public static JLabel createMutedLabel(String text) {
@@ -117,21 +142,21 @@ public final class ShopEaseUIUtils {
      * duplicating private styleButton() methods that bypass cross-platform rendering.
      */
     public static void styleDarkButton(JButton btn, Color bg) {
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(bodyFont());
-        btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(9, 16, 9, 16));
-        btn.setOpaque(true);
-        btn.setBorderPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        applyFlatStyle(btn, bg, Color.WHITE, new EmptyBorder(9, 16, 9, 16));
     }
 
     /**
      * Styles a button for use on dark-background admin panels (secondary / neutral variant).
      */
     public static void styleDarkSecondaryButton(JButton btn) {
-        styleDarkButton(btn, new Color(52, 73, 94));
-        btn.setForeground(new Color(236, 240, 241));
+        applyFlatStyle(btn, new Color(52, 73, 94), new Color(236, 240, 241), new EmptyBorder(9, 16, 9, 16));
+    }
+
+    /**
+     * Styles a sidebar navigation button — slightly darker than the sidebar background so it
+     * is visible without blending in, and left-aligned to suit a vertical menu.
+     */
+    public static void styleNavButton(JButton btn) {
+        applyFlatStyle(btn, new Color(44, 62, 80), new Color(236, 240, 241), new EmptyBorder(12, 14, 12, 14));
     }
 }

@@ -111,8 +111,7 @@ public class AdminInventoryPanel extends JPanel {
         ShopEaseUIUtils.styleDarkSecondaryButton(quickTenBtn);
         quickTenBtn.addActionListener(e -> doRestock(10));
         undoBtn = new JButton("Undo last change");
-        ShopEaseUIUtils.styleDarkButton(undoBtn, new Color(241, 196, 15));
-        undoBtn.setForeground(new Color(44, 62, 80));
+        ShopEaseUIUtils.styleDarkButton(undoBtn, new Color(180, 140, 0));
         undoBtn.addActionListener(e -> doUndo());
         restockRow.add(amountLabel);
         restockRow.add(restockSpinner);
@@ -291,6 +290,7 @@ public class AdminInventoryPanel extends JPanel {
 
     private void updateUndoButton() {
         undoBtn.setEnabled(service.canUndoLastRestock());
+        ShopEaseUIUtils.styleDarkButton(undoBtn, new Color(180, 140, 0));
     }
 
     private void showStatus(String message, boolean error) {
