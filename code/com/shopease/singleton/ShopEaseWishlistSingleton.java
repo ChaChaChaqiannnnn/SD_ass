@@ -8,7 +8,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** One wishlist instance per customer (Singleton), persisted via WishlistDAO. */
+/**
+ * Singleton Pattern — one wishlist session per customer user ID.
+ * The actual product IDs are saved in SQLite via WishlistDAO; this class is the in-memory handle.
+ */
 public class ShopEaseWishlistSingleton {
     private static final Map<String, ShopEaseWishlistSingleton> instances = new HashMap<>();
     private final String userId;

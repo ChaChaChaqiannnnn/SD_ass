@@ -1,15 +1,21 @@
 package com.shopease.ui;
 
-import com.shopease.observer.ShopEaseAdminAlertObserver;
+import com.shopease.observer.ShopEaseInventoryAdminAlertObserver;
 import com.shopease.observer.ShopEaseInventoryObserver;
-import com.shopease.observer.ShopEaseUiRefreshObserver;
+import com.shopease.observer.ShopEaseDataChangeRefreshObserver;
 import com.shopease.service.ShopEaseService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-/** Admin shell with sidebar: Inventory management | Manage users. */
+/**
+ * Admin home screen — top navigation switches between Inventory and Manage Users.
+ * <p>
+ * Observer Pattern — attaches {@link com.shopease.observer.ShopEaseDataChangeRefreshObserver}
+ * and {@link com.shopease.observer.ShopEaseInventoryAdminAlertObserver}; detaches on logout.
+ * Child panels call {@link ShopEaseService} only (Strategy + Observer live in the service layer).
+ */
 public class AdminDashboard extends JPanel {
     private static final String CARD_INVENTORY = "inventory";
     private static final String CARD_USERS = "users";
@@ -29,8 +35,8 @@ public class AdminDashboard extends JPanel {
         this.service = service;
         this.inventoryPanel = new AdminInventoryPanel(service);
         this.usersPanel = new AdminUsersPanel(service);
-        this.uiRefreshObserver = new ShopEaseUiRefreshObserver(this::refreshActivePanels);
-        this.adminAlertObserver = new ShopEaseAdminAlertObserver(this);
+        this.uiRefreshObserver = new ShopEaseDataChangeRefreshObserver(this::refreshActivePanels);
+        this.adminAlertObserver = new ShopEaseInventoryAdminAlertObserver(this);
         service.attachObserver(uiRefreshObserver);
         service.attachObserver(adminAlertObserver);
         this.onLogout = () -> {
@@ -42,87 +48,76 @@ public class AdminDashboard extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(44, 62, 80));
 
-        JPanel topBar = new JPanel(new BorderLayout());
-        topBar.setOpaque(false);
-        topBar.setBorder(new EmptyBorder(16, 20, 12, 20));
-        JLabel welcome = new JLabel("ShopEase Admin");
-        welcome.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 22));
-        welcome.setForeground(new Color(236, 240, 241));
-        JLabel sub = new JLabel("Signed in as " + service.getCurrentUser().getName());
-        sub.setFont(ShopEaseUIUtils.smallFont());
-        sub.setForeground(new Color(189, 195, 199));
-        JPanel titles = new JPanel(new GridLayout(2, 1, 0, 2));
-        titles.setOpaque(false);
-        titles.add(welcome);
-        titles.add(sub);
-        topBar.add(titles, BorderLayout.WEST);
-        add(topBar, BorderLayout.NORTH);
-
-        JPanel body = new JPanel(new BorderLayout());
-        body.setOpaque(false);
-        body.setBorder(new EmptyBorder(0, 0, 16, 16));
-
-        JPanel sidebar = buildSidebar();
-        sidebar.setPreferredSize(new Dimension(220, 0));
-        body.add(sidebar, BorderLayout.WEST);
+        add(buildTopHeader(), BorderLayout.NORTH);
 
         contentLayout = new CardLayout();
         contentPanel = new JPanel(contentLayout);
         contentPanel.setOpaque(false);
-        contentPanel.setBorder(new EmptyBorder(0, 16, 0, 0));
+        contentPanel.setBorder(new EmptyBorder(4, 10, 10, 10));
         contentPanel.add(inventoryPanel, CARD_INVENTORY);
         contentPanel.add(usersPanel, CARD_USERS);
-        body.add(contentPanel, BorderLayout.CENTER);
-
-        add(body, BorderLayout.CENTER);
+        add(contentPanel, BorderLayout.CENTER);
 
         showSection(CARD_INVENTORY);
     }
 
-    private JPanel buildSidebar() {
-        JPanel sidebar = new JPanel();
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setBackground(new Color(52, 73, 94));
-        sidebar.setBorder(new EmptyBorder(16, 12, 16, 12));
+    private JPanel buildTopHeader() {
+        JPanel header = new JPanel(new BorderLayout(0, 4));
+        header.setBackground(new Color(44, 62, 80));
+        header.setBorder(new EmptyBorder(6, 12, 2, 12));
 
-        JLabel navTitle = new JLabel("MENU");
-        navTitle.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
-        navTitle.setForeground(new Color(149, 165, 166));
-        navTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        navTitle.setBorder(new EmptyBorder(0, 8, 12, 0));
-        sidebar.add(navTitle);
+        JPanel titleRow = new JPanel(new BorderLayout());
+        titleRow.setOpaque(false);
+
+        JLabel welcome = new JLabel("ShopEase Admin");
+        welcome.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 18));
+        welcome.setForeground(new Color(236, 240, 241));
+        titleRow.add(welcome, BorderLayout.WEST);
+
+        JButton logoutBtn = new JButton("Logout");
+        ShopEaseUIUtils.styleDarkButton(logoutBtn, new Color(192, 57, 43));
+        compactHeaderButton(logoutBtn);
+        logoutBtn.addActionListener(e -> {
+            if (ShopEaseUIUtils.confirmLogout(this)) {
+                service.logout();
+                onLogout.run();
+            }
+        });
+        JPanel logoutWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        logoutWrap.setOpaque(false);
+        logoutWrap.add(logoutBtn);
+        titleRow.add(logoutWrap, BorderLayout.EAST);
+        header.add(titleRow, BorderLayout.NORTH);
+
+        JPanel navBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        navBar.setOpaque(false);
+        navBar.setBorder(new EmptyBorder(2, 0, 4, 0));
 
         inventoryNavBtn = navButton("Inventory management");
         inventoryNavBtn.addActionListener(e -> showSection(CARD_INVENTORY));
-        sidebar.add(inventoryNavBtn);
-        sidebar.add(Box.createVerticalStrut(8));
-
         usersNavBtn = navButton("Manage users");
         usersNavBtn.addActionListener(e -> showSection(CARD_USERS));
-        sidebar.add(usersNavBtn);
 
-        sidebar.add(Box.createVerticalGlue());
+        navBar.add(inventoryNavBtn);
+        navBar.add(usersNavBtn);
+        header.add(navBar, BorderLayout.CENTER);
 
-        JButton logoutBtn = new JButton("Logout");
-        logoutBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        logoutBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-        logoutBtn.setHorizontalAlignment(SwingConstants.LEFT);
-        ShopEaseUIUtils.styleDarkButton(logoutBtn, new Color(192, 57, 43));
-        logoutBtn.addActionListener(e -> {
-            service.logout();
-            onLogout.run();
-        });
-        sidebar.add(logoutBtn);
+        JSeparator line = new JSeparator();
+        line.setForeground(new Color(127, 140, 141));
+        header.add(line, BorderLayout.SOUTH);
 
-        return sidebar;
+        return header;
+    }
+
+    private static void compactHeaderButton(JButton btn) {
+        btn.setFont(ShopEaseUIUtils.smallFont());
+        btn.setBorder(new EmptyBorder(5, 12, 5, 12));
     }
 
     private JButton navButton(String text) {
         JButton btn = new JButton(text);
-        btn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-        btn.setHorizontalAlignment(SwingConstants.LEFT);
         ShopEaseUIUtils.styleNavButton(btn);
+        compactHeaderButton(btn);
         return btn;
     }
 
@@ -143,6 +138,7 @@ public class AdminDashboard extends JPanel {
         } else {
             ShopEaseUIUtils.styleNavButton(btn);
         }
+        compactHeaderButton(btn);
     }
 
     private void refreshActivePanels() {

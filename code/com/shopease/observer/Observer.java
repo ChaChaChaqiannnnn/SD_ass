@@ -1,7 +1,7 @@
 package com.shopease.observer;
 
-//this is the rule for any object that wants to watch the inventory
+// Observer Pattern — any class that wants to "listen" must implement this one method
 public interface Observer {
-    //this is what happens when something changes
+    /** event = what happened (e.g. LOW_STOCK), productName = product name or extra detail */
     void update(String event, String productName);
 }

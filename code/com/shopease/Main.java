@@ -134,10 +134,10 @@ public class Main {
     private static void setupObservers() {
         if (currentUser instanceof Customer) {
             userCart = ShopEaseCartSingleton.getInstance(currentUser.getUserId());
-            ShopEaseShoppingCartObserver cartObserver = new ShopEaseShoppingCartObserver(userCart);
+            ShopEaseCartStockSyncObserver cartObserver = new ShopEaseCartStockSyncObserver(userCart);
             inventorySystem.attach(cartObserver);
         }
-        ShopEaseAdminObserver adminObserver = new ShopEaseAdminObserver();
+        ShopEaseInventoryAdminLogObserver adminObserver = new ShopEaseInventoryAdminLogObserver();
         inventorySystem.attach(adminObserver);
     }
 

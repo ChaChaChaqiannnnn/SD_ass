@@ -1,6 +1,9 @@
 package com.shopease.strategy;
 
-//this handles the different ways a user can pay
+/**
+ * Strategy Pattern — the "context" that runs whichever payment strategy was chosen.
+ * ShopEaseService.checkout() creates this and calls executeStrategy(total).
+ */
 public class ShopEasePaymentContext {
     private ShopEasePaymentStrategy strategy;
 
@@ -14,7 +17,7 @@ public class ShopEasePaymentContext {
         this.strategy = strategy;
     }
 
-    //this tells the chosen method to start the payment
+    /** Delegates to Credit Card / DuitNow / MAE / TNG — each has its own execute() logic */
     public void executeStrategy(double amount) {
         strategy.execute(amount);
     }

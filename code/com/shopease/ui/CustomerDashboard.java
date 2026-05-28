@@ -2,7 +2,7 @@ package com.shopease.ui;
 
 import com.shopease.model.Product;
 import com.shopease.observer.ShopEaseInventoryObserver;
-import com.shopease.observer.ShopEaseUiRefreshObserver;
+import com.shopease.observer.ShopEaseDataChangeRefreshObserver;
 import com.shopease.service.ShopEaseService;
 
 import javax.swing.*;
@@ -10,7 +10,14 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.List;
 
+/**
+ * Customer shop screen — browse products, wishlist, cart, profile, order history.
+ * Uses DataChangeRefreshObserver so product cards update when stock changes live.
+ */
 public class CustomerDashboard extends JPanel {
+    private static final String DEFAULT_TIP =
+            "Tip: Added items stay in your cart until you remove them or checkout.";
+
     private final ShopEaseService service;
     private final Runnable onLogout;
     private static final String SEARCH_PLACEHOLDER = "Search products...";
@@ -25,7 +32,8 @@ public class CustomerDashboard extends JPanel {
 
     public CustomerDashboard(ShopEaseService service, Runnable onLogout) {
         this.service = service;
-        this.uiRefreshObserver = new ShopEaseUiRefreshObserver(this::refreshAll);
+        // Observer — when stock/cart/wishlist changes, reload the product grid automatically
+        this.uiRefreshObserver = new ShopEaseDataChangeRefreshObserver(this::refreshAll);
         service.attachObserver(uiRefreshObserver);
         this.onLogout = () -> {
             service.detachObserver(uiRefreshObserver);
@@ -54,14 +62,17 @@ public class CustomerDashboard extends JPanel {
 
         JButton wishlistBtn = new JButton("Wishlist");
         ShopEaseUIUtils.styleSecondaryButton(wishlistBtn);
+        wishlistBtn.setToolTipText("View saved products and move them to cart");
         wishlistBtn.addActionListener(e -> showWishlistDialog());
 
         JButton ordersBtn = new JButton("Orders");
         ShopEaseUIUtils.styleSecondaryButton(ordersBtn);
+        ordersBtn.setToolTipText("View your past orders and receipts");
         ordersBtn.addActionListener(e -> showOrderHistoryDialog());
 
         cartBtn = new JButton("View Cart");
         ShopEaseUIUtils.stylePrimaryButton(cartBtn);
+        cartBtn.setToolTipText("Review items, change quantities, and checkout");
         cartBtn.addActionListener(e -> showCartDialog());
 
         JPanel headerActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
@@ -78,12 +89,13 @@ public class CustomerDashboard extends JPanel {
         JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
         centerPanel.setOpaque(false);
 
+        JLabel searchLabel = ShopEaseUIUtils.createFieldLabel("Search products");
         JTextField searchField = new JTextField();
         searchField.setFont(ShopEaseUIUtils.bodyFont());
         searchField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(220, 224, 232)),
                 new EmptyBorder(10, 12, 10, 12)));
-        // Placeholder text
+        // Placeholder text — clears on focus for a cleaner search experience
         searchField.setForeground(ShopEaseUIUtils.TEXT_MUTED);
         searchField.setText(SEARCH_PLACEHOLDER);
         searchField.addFocusListener(new java.awt.event.FocusAdapter() {
@@ -105,7 +117,11 @@ public class CustomerDashboard extends JPanel {
             public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(searchField); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(searchField); }
         });
-        centerPanel.add(searchField, BorderLayout.NORTH);
+        JPanel searchSection = new JPanel(new BorderLayout(0, 6));
+        searchSection.setOpaque(false);
+        searchSection.add(searchLabel, BorderLayout.NORTH);
+        searchSection.add(searchField, BorderLayout.CENTER);
+        centerPanel.add(searchSection, BorderLayout.NORTH);
 
         productsPanel = new JPanel(new GridLayout(0, 2, 12, 12));
         productsPanel.setOpaque(false);
@@ -138,14 +154,16 @@ public class CustomerDashboard extends JPanel {
         bottomPanel.setOpaque(false);
         bottomPanel.setBorder(new EmptyBorder(8, 0, 0, 0));
 
-        statusLabel = ShopEaseUIUtils.createMutedLabel("Tip: Added items stay in your cart until you remove them or checkout.");
+        statusLabel = ShopEaseUIUtils.createMutedLabel(DEFAULT_TIP);
         bottomPanel.add(statusLabel, BorderLayout.WEST);
 
         JButton logoutBtn = new JButton("Logout");
         ShopEaseUIUtils.styleDangerButton(logoutBtn);
         logoutBtn.addActionListener(e -> {
-            service.logout();
-            onLogout.run();
+            if (ShopEaseUIUtils.confirmLogout(this)) {
+                service.logout();
+                onLogout.run();
+            }
         });
         JPanel logoutWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         logoutWrap.setOpaque(false);
@@ -222,7 +240,7 @@ public class CustomerDashboard extends JPanel {
         } else {
             ShopEaseUIUtils.styleButton(wishBtn, new Color(155, 89, 182));
         }
-        // Observer pattern — wishlist/cart changes notify ShopEaseUiRefreshObserver → refreshAll()
+        // Observer pattern — DataChangeRefreshObserver refreshes catalog on DATA_CHANGED
         wishBtn.addActionListener(e -> {
             wishBtn.setEnabled(false);
             // SwingWorker — wishlist DB read/write off the EDT
@@ -267,7 +285,7 @@ public class CustomerDashboard extends JPanel {
                         if (latest == null) {
                             return null;
                         }
-                        // Singleton pattern — ShopEaseCartSingleton.getInstance() used inside
+                        // Adds to the customer's Singleton cart (one cart per user ID in memory)
                         service.addToCart(latest, qty);
                         return null;
                     }
@@ -302,8 +320,17 @@ public class CustomerDashboard extends JPanel {
     }
 
     private void showStatus(String message, boolean isError) {
+        if (message == null || message.isEmpty()) {
+            statusLabel.setText(DEFAULT_TIP);
+            statusLabel.setForeground(ShopEaseUIUtils.TEXT_MUTED);
+            return;
+        }
         statusLabel.setText(message);
-        statusLabel.setForeground(isError ? ShopEaseUIUtils.DANGER : ShopEaseUIUtils.TEXT_MUTED);
+        if (isError) {
+            statusLabel.setForeground(ShopEaseUIUtils.DANGER);
+        } else {
+            statusLabel.setForeground(ShopEaseUIUtils.SUCCESS);
+        }
     }
 
     private void updateCartBadge() {

@@ -7,8 +7,13 @@ import com.shopease.model.User;
 import com.shopease.util.CustomerIdGenerator;
 import com.shopease.util.UserAccountUtils;
 
-public class CreateCustomerUserStrategy {
+/**
+ * Strategy Pattern — admin creates a new customer account.
+ * Keeps validation logic out of the UI panel.
+ */
+public class CreateCustomerUserStrategy implements ShopEaseCreateCustomerStrategy {
 
+    @Override
     public boolean create(UserDAO userDAO, User admin, String name, String email, String password,
                             ShopEaseAdminUserActionStrategy.AdminUserActionResult result) {
         if (!(admin instanceof Admin)) {

@@ -7,12 +7,13 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
+/**
+ * Customer profile editor — name, email, password.
+ * Save button calls ShopEaseService → CustomerProfileUpdateStrategy (Strategy pattern).
+ */
 public class ProfileDialog extends JDialog {
     public ProfileDialog(JFrame parent, ShopEaseService service, Runnable onProfileUpdated) {
         super(parent, "Profile settings", true);
-        setSize(460, 480);
-        setMinimumSize(new Dimension(440, 420));
-        setLocationRelativeTo(parent);
         getContentPane().setBackground(ShopEaseUIUtils.BG_PAGE);
         setLayout(new BorderLayout());
 
@@ -61,11 +62,22 @@ public class ProfileDialog extends JDialog {
         status.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(Box.createVerticalStrut(8));
         card.add(status);
-        card.add(Box.createVerticalStrut(12));
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        actions.setOpaque(false);
-        actions.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel wrap = new JPanel(new GridBagLayout());
+        wrap.setOpaque(false);
+        wrap.setBorder(new EmptyBorder(16, 16, 8, 16));
+        wrap.add(card);
+
+        JScrollPane scroll = new JScrollPane(wrap);
+        scroll.setBorder(null);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        add(scroll, BorderLayout.CENTER);
+
+        // Fixed footer — buttons always visible (not clipped by window height)
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        footer.setOpaque(false);
+        footer.setBorder(new EmptyBorder(8, 20, 16, 20));
         JButton cancel = new JButton("Cancel");
         ShopEaseUIUtils.styleSecondaryButton(cancel);
         cancel.addActionListener(e -> dispose());
@@ -75,7 +87,6 @@ public class ProfileDialog extends JDialog {
             String pass    = new String(passField.getPassword());
             String confirm = new String(confirmField.getPassword());
 
-            // Client-side validation — no I/O, safe on EDT
             if (!pass.isEmpty() && !pass.equals(confirm)) {
                 status.setText("Passwords do not match.");
                 status.setForeground(ShopEaseUIUtils.DANGER);
@@ -87,7 +98,6 @@ public class ProfileDialog extends JDialog {
                 return;
             }
 
-            // SwingWorker — moves SQLite write off the EDT to prevent Windows freeze
             save.setEnabled(false);
             save.setText("Saving…");
             status.setText("Saving…");
@@ -100,7 +110,6 @@ public class ProfileDialog extends JDialog {
             new javax.swing.SwingWorker<Boolean, Void>() {
                 @Override
                 protected Boolean doInBackground() {
-                    // Strategy pattern — delegates to CustomerProfileUpdateStrategy
                     return service.updateCustomerProfile(finalName, finalEmail, finalPass);
                 }
 
@@ -129,15 +138,21 @@ public class ProfileDialog extends JDialog {
                 }
             }.execute();
         });
-        actions.add(cancel);
-        actions.add(save);
-        card.add(actions);
+        footer.add(cancel);
+        footer.add(save);
+        add(footer, BorderLayout.SOUTH);
 
-        JPanel wrap = new JPanel(new GridBagLayout());
-        wrap.setOpaque(false);
-        wrap.setBorder(new EmptyBorder(16, 16, 16, 16));
-        wrap.add(card);
-        add(wrap, BorderLayout.CENTER);
+        setSize(500, 580);
+        setMinimumSize(new Dimension(460, 520));
+        setLocationRelativeTo(parent);
+    }
+
+    @Override
+    public void setVisible(boolean visible) {
+        if (visible) {
+            setLocationRelativeTo(getOwner());
+        }
+        super.setVisible(visible);
     }
 
     private JPanel labeled(String text, JComponent field) {

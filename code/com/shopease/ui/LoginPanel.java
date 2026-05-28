@@ -6,7 +6,10 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-/** Dedicated sign-in screen — separate from registration. */
+/**
+ * Sign-in screen — validates email/password via ShopEaseService.login().
+ * On success, ShopEaseApp attaches observers and opens the right dashboard.
+ */
 public class LoginPanel extends JPanel {
     private final ShopEaseService service;
     private final Runnable onLoginSuccess;
@@ -84,12 +87,6 @@ public class LoginPanel extends JPanel {
         switchRow.add(signUpLink);
         card.add(switchRow);
 
-        card.add(Box.createVerticalStrut(16));
-        JLabel adminHint = ShopEaseUIUtils.createMutedLabel(
-                "<html>Staff admin? Use your admin email (e.g. admin@email.admin.my)</html>");
-        adminHint.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(adminHint);
-
         JPanel centerWrap = new JPanel(new GridBagLayout());
         centerWrap.setOpaque(false);
         centerWrap.add(card);
@@ -100,6 +97,7 @@ public class LoginPanel extends JPanel {
         emailField.setText("");
         passwordField.setText("");
         showStatus("", false);
+        SwingUtilities.invokeLater(() -> emailField.requestFocusInWindow());
     }
 
     public void showStatus(String message, boolean error) {

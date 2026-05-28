@@ -1,6 +1,6 @@
 package com.shopease.strategy;
 
-//this is the way to pay using a credit card
+// Strategy Pattern — one concrete payment method (Credit Card)
 public class ShopEaseCreditCardStrategy implements ShopEasePaymentStrategy {
     @Override
     public void execute(double amount) {

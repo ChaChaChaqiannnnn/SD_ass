@@ -1,15 +1,20 @@
 package com.shopease.ui;
 
 import com.shopease.model.Admin;
-import com.shopease.observer.ShopEaseAdminLoginStockObserver;
-import com.shopease.observer.ShopEaseCartReminderObserver;
+import com.shopease.observer.ShopEaseAdminLoginStockAlertObserver;
+import com.shopease.observer.ShopEaseCustomerCartReminderObserver;
 import com.shopease.observer.ShopEaseInventoryObserver;
-import com.shopease.observer.ShopEaseWishlistRestockObserver;
+import com.shopease.observer.ShopEaseCustomerWishlistRestockObserver;
 import com.shopease.service.ShopEaseService;
 
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * Main window — starts at login/sign-up, then opens Admin or Customer dashboard.
+ * <p>
+ * Flow to explain: Login → attach the right observers → publish login events → show dashboard.
+ */
 public class ShopEaseApp extends JFrame {
     private static final String CARD_LOGIN = "login";
     private static final String CARD_SIGNUP = "signup";
@@ -67,23 +72,26 @@ public class ShopEaseApp extends JFrame {
         repaint();
     }
 
+    /** Called after a successful login — wires up observers and swaps to the correct dashboard. */
     private void onLoginSuccess() {
-        setSize(900, 600);
-        setMinimumSize(new Dimension(900, 600));
+        setSize(960, 640);
+        setMinimumSize(new Dimension(920, 620));
         setLocationRelativeTo(null);
         if (service.getCurrentUser() instanceof Admin) {
             setTitle("ShopEase — Admin");
-            ShopEaseInventoryObserver adminLoginStockObserver = new ShopEaseAdminLoginStockObserver(this);
+            // Observer — popup summarising all low/out-of-stock products when admin signs in
+            ShopEaseInventoryObserver adminLoginStockObserver = new ShopEaseAdminLoginStockAlertObserver(this);
             service.attachObserver(adminLoginStockObserver);
             service.publishAdminLowStockOnLogin();
             setContentPane(new AdminDashboard(service, () -> {
-                service.detachObserver(adminLoginStockObserver);
+                service.detachObserver(adminLoginStockObserver); // clean up on logout
                 showLoginScreen();
             }));
         } else {
             setTitle("ShopEase — Shop");
-            ShopEaseInventoryObserver cartReminderObserver = new ShopEaseCartReminderObserver(this);
-            ShopEaseInventoryObserver wishlistRestockObserver = new ShopEaseWishlistRestockObserver(this);
+            // Observers — cart reminder + wishlist restock popups for customers on login
+            ShopEaseInventoryObserver cartReminderObserver = new ShopEaseCustomerCartReminderObserver(this);
+            ShopEaseInventoryObserver wishlistRestockObserver = new ShopEaseCustomerWishlistRestockObserver(this);
             service.attachObserver(cartReminderObserver);
             service.attachObserver(wishlistRestockObserver);
             service.publishWishlistRestockOnLogin();

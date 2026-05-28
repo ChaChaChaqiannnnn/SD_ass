@@ -4,6 +4,10 @@ import com.shopease.dao.UserDAO;
 import com.shopease.model.Customer;
 import com.shopease.model.User;
 
+/**
+ * Strategy Pattern — profile update rules for customers.
+ * ProfileDialog calls ShopEaseService, which delegates validation + DB save to this class.
+ */
 public class CustomerProfileUpdateStrategy implements ShopEaseProfileUpdateStrategy {
 
     @Override

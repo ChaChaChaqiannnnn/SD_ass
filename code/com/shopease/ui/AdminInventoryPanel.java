@@ -8,11 +8,18 @@ import com.shopease.service.ShopEaseService;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.plaf.basic.BasicButtonUI;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
-/** Admin sidebar section: inventory restock, reduce, history. */
+/**
+ * Admin sidebar — restock, reduce (with remarks), undo, and coloured stock list.
+ * Stock changes trigger Observer events so other screens refresh too.
+ * <p>
+ * Observer Pattern — all stock writes go through {@link ShopEaseService}, which publishes
+ * LOW_STOCK / OUT_OF_STOCK / DATA_CHANGED to attached observers.
+ */
 public class AdminInventoryPanel extends JPanel {
     private static final SimpleDateFormat TIME_FMT = new SimpleDateFormat("dd MMM HH:mm");
 
@@ -111,7 +118,7 @@ public class AdminInventoryPanel extends JPanel {
         ShopEaseUIUtils.styleDarkSecondaryButton(quickTenBtn);
         quickTenBtn.addActionListener(e -> doRestock(10));
         undoBtn = new JButton("Undo last change");
-        ShopEaseUIUtils.styleDarkButton(undoBtn, new Color(180, 140, 0));
+        styleUndoButton(undoBtn);
         undoBtn.addActionListener(e -> doUndo());
         restockRow.add(amountLabel);
         restockRow.add(restockSpinner);
@@ -133,6 +140,10 @@ public class AdminInventoryPanel extends JPanel {
         remarksLabel.setFont(ShopEaseUIUtils.bodyFont());
         remarksField = new JTextField(15);
         remarksField.setFont(ShopEaseUIUtils.bodyFont());
+        remarksField.setToolTipText("Required — explain why stock is being reduced");
+        remarksField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(127, 140, 141)),
+                new EmptyBorder(8, 10, 8, 10)));
         JButton reduceBtn = new JButton("Reduce stock");
         ShopEaseUIUtils.styleDarkButton(reduceBtn, new Color(192, 57, 43));
         reduceBtn.addActionListener(e -> doReduce());
@@ -170,8 +181,7 @@ public class AdminInventoryPanel extends JPanel {
             showStatus("Select a product from the list first.", true);
             return;
         }
-        // SwingWorker — moves SQLite stock update off the EDT to prevent Windows freeze
-        // Strategy pattern — ShopEaseService delegates to AdminUserActionStrategy internally
+        // SwingWorker — SQLite stock update off the EDT; Observer fires via ShopEaseService.restockProduct()
         final String productId = p.getProductId();
         new javax.swing.SwingWorker<Boolean, Void>() {
             @Override
@@ -212,7 +222,7 @@ public class AdminInventoryPanel extends JPanel {
         if (confirm != JOptionPane.YES_OPTION) {
             return;
         }
-        // SwingWorker — moves SQLite write off the EDT
+        // SwingWorker — SQLite write off the EDT; Observer fires via ShopEaseService.reduceStockProduct()
         final String productId = p.getProductId();
         final String finalRemarks = remarks;
         final int finalAmount = amount;
@@ -290,15 +300,74 @@ public class AdminInventoryPanel extends JPanel {
 
     private void updateUndoButton() {
         undoBtn.setEnabled(service.canUndoLastRestock());
-        ShopEaseUIUtils.styleDarkButton(undoBtn, new Color(180, 140, 0));
+    }
+
+    /** Matches other admin action buttons but paints flat text (no disabled emboss/shadow). */
+    private static void styleUndoButton(JButton btn) {
+        Color bg = ShopEaseUIUtils.WARNING;
+        Font buttonFont = ShopEaseUIUtils.bodyFont();
+        btn.setFont(buttonFont);
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setContentAreaFilled(false);
+        btn.setOpaque(false);
+        btn.setBorder(new EmptyBorder(9, 16, 9, 16));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setUI(new BasicButtonUI() {
+            @Override
+            protected void installDefaults(AbstractButton b) {
+                super.installDefaults(b);
+                b.setFont(buttonFont);
+                b.setForeground(Color.WHITE);
+            }
+
+            @Override
+            public void paint(Graphics g, JComponent c) {
+                AbstractButton b = (AbstractButton) c;
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(undoButtonFill(b, bg));
+                g2.fillRoundRect(0, 0, c.getWidth(), c.getHeight(), 8, 8);
+                g2.dispose();
+
+                String text = b.getText();
+                if (text == null || text.isEmpty()) {
+                    return;
+                }
+                Graphics2D tg = (Graphics2D) g.create();
+                tg.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                tg.setFont(buttonFont);
+                tg.setColor(b.isEnabled() ? Color.WHITE : new Color(255, 255, 255, 170));
+                FontMetrics fm = tg.getFontMetrics();
+                int textX = (c.getWidth() - fm.stringWidth(text)) / 2;
+                int textY = ((c.getHeight() - fm.getHeight()) / 2) + fm.getAscent();
+                tg.drawString(text, textX, textY);
+                tg.dispose();
+            }
+        });
+    }
+
+    private static Color undoButtonFill(AbstractButton b, Color bg) {
+        if (!b.isEnabled()) {
+            return new Color(bg.getRed(), bg.getGreen(), bg.getBlue(), 140);
+        }
+        if (b.getModel().isPressed()) {
+            return bg.darker();
+        }
+        if (b.getModel().isRollover()) {
+            return new Color(
+                    Math.min(255, bg.getRed() + 22),
+                    Math.min(255, bg.getGreen() + 22),
+                    Math.min(255, bg.getBlue() + 22));
+        }
+        return bg;
     }
 
     private void showStatus(String message, boolean error) {
         statusLabel.setText(message);
         statusLabel.setForeground(error ? new Color(231, 76, 60) : new Color(46, 204, 113));
     }
-    // Note: button styling is now handled by ShopEaseUIUtils.styleDarkButton()
-    // and ShopEaseUIUtils.styleDarkSecondaryButton() — no private duplicates needed.
 
     private static class AdminProductCellRenderer extends DefaultListCellRenderer {
         @Override

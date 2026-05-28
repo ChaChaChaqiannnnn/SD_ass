@@ -1,0 +1,11 @@
+# Keep line endings consistent so Mac/Linux and Windows users share the same repo cleanly
+*.java text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.md text eol=lf
+*.json text eol=lf
+
+# Shell scripts must stay executable on Mac/Linux after clone
+compile.sh text eol=lf
+run-gui.sh text eol=lf
+run-tests.sh text eol=lf

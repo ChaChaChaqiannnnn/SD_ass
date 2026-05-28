@@ -1,0 +1,116 @@
+================================================================================
+  ShopEase — HOW TO COMPILE AND RUN ON WINDOWS (Group 5)
+================================================================================
+
+Before you start
+----------------
+1. Install Java JDK 11 or newer (JDK 17 or 21 recommended)
+   Download: https://adoptium.net/
+
+2. Check Java is installed — open Command Prompt and type:
+      java -version
+      javac -version
+   Both commands should show a version number. If not, reinstall JDK and
+   tick "Add to PATH" during installation.
+
+3. Unzip or clone the project folder, for example:
+      C:\Users\YourName\Desktop\TT2L_G5_ShopEaseEcommerceSystem
+
+4. Make sure this file exists:
+      lib\sqlite-jdbc.jar
+   (It is included in the repo. If missing, download from Maven Central.)
+
+
+STEP 1 — Open the project folder in Command Prompt
+----------------------------------------------------
+Option A (easiest):
+   - Open the project folder in File Explorer
+   - Click the address bar, type:  cmd
+   - Press Enter
+
+Option B:
+   - Press Win + R, type:  cmd
+   - Press Enter
+   - Type:  cd C:\path\to\TT2L_G5_ShopEaseEcommerceSystem
+   - Press Enter
+
+
+STEP 2 — Compile (build the project)
+------------------------------------
+Type this and press Enter:
+
+   compile.bat
+
+You should see:
+   Compiling 67 source files...
+   Build OK. Classes in bin\
+
+If compile fails:
+   - "javac not found" → install JDK and add to PATH
+   - "sqlite-jdbc.jar is missing" → check the lib\ folder
+
+
+STEP 3 — Run the GUI application
+---------------------------------
+Type this and press Enter:
+
+   run-gui.bat
+
+The ShopEase login window should open.
+
+Default admin login:
+   Email:    admin@email.admin.my
+   Password: adminpass
+
+Customers can click "Create account" to register.
+
+
+STEP 4 — Run tests (optional)
+------------------------------
+Type this and press Enter:
+
+   run-tests.bat
+
+Runs SmokeTest, FeatureTest, and FullSystemTest automatically.
+
+
+Manual commands (if you prefer not to use .bat files)
+-----------------------------------------------------
+Compile:
+   dir /s /b code\*.java > sources.txt
+   if not exist bin mkdir bin
+   javac -encoding UTF-8 -d bin -cp "lib\sqlite-jdbc.jar" @sources.txt
+
+Run GUI:
+   java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.ui.ShopEaseApp
+
+Run one test:
+   java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.SmokeTest
+
+IMPORTANT — Windows uses semicolon (;) in classpath, NOT colon (:)
+   Correct:   bin;lib\sqlite-jdbc.jar
+   Wrong:     bin:lib\sqlite-jdbc.jar
+
+
+Using PowerShell instead of Command Prompt
+------------------------------------------
+Same commands work — just type:
+   .\compile.bat
+   .\run-gui.bat
+   .\run-tests.bat
+
+
+Using VS Code / Cursor on Windows
+---------------------------------
+1. Open the project root folder (contains code\ and lib\)
+2. Install "Extension Pack for Java"
+3. Run compile.bat once in the terminal
+4. Press F5 or use Run → "ShopEase GUI (Mac/Windows)"
+
+
+Database file
+-------------
+shopease.db is created automatically in the project root on first run.
+You do NOT need to create it manually.
+
+================================================================================

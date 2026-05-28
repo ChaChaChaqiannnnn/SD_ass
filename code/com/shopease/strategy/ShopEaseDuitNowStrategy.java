@@ -1,6 +1,6 @@
 package com.shopease.strategy;
 
-//this is the way to pay using duitnow qr
+// Strategy Pattern — DuitNow QR payment method
 public class ShopEaseDuitNowStrategy implements ShopEasePaymentStrategy {
     @Override
     public void execute(double amount) {

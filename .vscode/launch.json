@@ -3,32 +3,35 @@
     "configurations": [
         {
             "type": "java",
-            "name": "ShopEaseApp",
+            "name": "ShopEase GUI (Mac/Windows)",
             "request": "launch",
             "mainClass": "com.shopease.ui.ShopEaseApp",
-            "projectName": "TT2L_G5_ShopEaseEcommerceSystem_9234c2ef"
-        },
-        {
-            "type": "java",
-            "name": "Main",
-            "request": "launch",
-            "mainClass": "com.shopease.Main",
-            "projectName": "TT2L_G5_ShopEaseEcommerceSystem_9234c2ef"
-        },
-        {
-            "type": "java",
-            "name": "ShopEase GUI",
-            "request": "launch",
-            "mainClass": "com.shopease.ui.ShopEaseApp",
-            "projectName": "ShopEase",
+            "classPaths": [
+                "${workspaceFolder}/bin",
+                "${workspaceFolder}/lib/sqlite-jdbc.jar"
+            ],
             "cwd": "${workspaceFolder}"
         },
         {
             "type": "java",
-            "name": "ShopEase Console",
+            "name": "Full System Test",
             "request": "launch",
-            "mainClass": "com.shopease.Main",
-            "projectName": "ShopEase",
+            "mainClass": "com.shopease.FullSystemTest",
+            "classPaths": [
+                "${workspaceFolder}/bin",
+                "${workspaceFolder}/lib/sqlite-jdbc.jar"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "java",
+            "name": "Smoke Test",
+            "request": "launch",
+            "mainClass": "com.shopease.SmokeTest",
+            "classPaths": [
+                "${workspaceFolder}/bin",
+                "${workspaceFolder}/lib/sqlite-jdbc.jar"
+            ],
             "cwd": "${workspaceFolder}"
         }
     ]

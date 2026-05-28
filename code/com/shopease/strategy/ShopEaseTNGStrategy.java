@@ -1,6 +1,6 @@
 package com.shopease.strategy;
 
-//this is the way to pay using the tng e-wallet
+// Strategy Pattern — Touch 'n Go e-wallet payment method
 public class ShopEaseTNGStrategy implements ShopEasePaymentStrategy {
     @Override
     public void execute(double amount) {

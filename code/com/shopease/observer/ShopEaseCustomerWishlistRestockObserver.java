@@ -4,17 +4,20 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import java.awt.Component;
 
-/** Observer: customer login alert when wishlist items are back in stock. */
-public class ShopEaseWishlistRestockObserver implements ShopEaseInventoryObserver {
+/**
+ * Observer — CustomerWishlistRestockObserver
+ * Tells the customer when something on their wishlist was out of stock but is available again.
+ */
+public class ShopEaseCustomerWishlistRestockObserver implements ShopEaseInventoryObserver {
     private final Component parent;
 
-    public ShopEaseWishlistRestockObserver(Component parent) {
+    public ShopEaseCustomerWishlistRestockObserver(Component parent) {
         this.parent = parent;
     }
 
     @Override
     public void update(String event, String productName) {
-        if (!"WISHLIST_RESTOCK".equals(event)) {
+        if (!ShopEaseAppEvents.WISHLIST_RESTOCK.equals(event)) {
             return;
         }
         SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,

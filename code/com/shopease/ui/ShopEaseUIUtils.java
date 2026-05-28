@@ -50,6 +50,8 @@ public final class ShopEaseUIUtils {
     }
 
     private static void applyFlatStyle(JButton btn, Color bg, Color fg, EmptyBorder padding) {
+        Font buttonFont = bodyFont();
+        btn.setFont(buttonFont);
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setContentAreaFilled(false);
@@ -58,8 +60,17 @@ public final class ShopEaseUIUtils {
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
             @Override
+            protected void installDefaults(AbstractButton b) {
+                super.installDefaults(b);
+                b.setFont(buttonFont);
+                b.setForeground(fg);
+            }
+
+            @Override
             public void paint(java.awt.Graphics g, JComponent c) {
                 javax.swing.AbstractButton b = (javax.swing.AbstractButton) c;
+                b.setFont(buttonFont);
+                b.setForeground(fg);
                 java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
                 g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
                         java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
@@ -82,10 +93,9 @@ public final class ShopEaseUIUtils {
                 super.paint(g, c);
             }
         });
-        // Set AFTER setUI() — BasicButtonUI.installDefaults() runs inside setUI() and
-        // resets font/foreground to the LAF default. Setting them last ensures our values win.
+        // Set AFTER setUI() — BasicButtonUI.installDefaults() resets font/foreground to LAF defaults.
         btn.setForeground(fg);
-        btn.setFont(bodyFont());
+        btn.setFont(buttonFont);
     }
 
     public static JLabel createMutedLabel(String text) {
@@ -158,5 +168,14 @@ public final class ShopEaseUIUtils {
      */
     public static void styleNavButton(JButton btn) {
         applyFlatStyle(btn, new Color(44, 62, 80), new Color(236, 240, 241), new EmptyBorder(12, 14, 12, 14));
+    }
+
+    /** Ask before sign-out — avoids accidental logout on mis-clicks. */
+    public static boolean confirmLogout(Component parent) {
+        return JOptionPane.showConfirmDialog(parent,
+                "Sign out of ShopEase?",
+                "Confirm logout",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION;
     }
 }

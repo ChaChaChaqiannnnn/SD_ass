@@ -1,6 +1,9 @@
 package com.shopease.observer;
 
-/** Observer interface for inventory, UI sync, cart reminders, and admin alerts. */
+/**
+ * Observer Pattern — ShopEase-specific observer interface.
+ * Every *FunctionObserver class in this package implements this.
+ */
 public interface ShopEaseInventoryObserver extends Observer {
     @Override
     void update(String event, String productName);

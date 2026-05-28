@@ -5,8 +5,12 @@ import com.shopease.model.Admin;
 import com.shopease.model.Customer;
 import com.shopease.model.User;
 
-public class UpdateCustomerUserStrategy {
+/**
+ * Strategy Pattern — admin edits an existing customer's name, email, or password.
+ */
+public class UpdateCustomerUserStrategy implements ShopEaseUpdateCustomerStrategy {
 
+    @Override
     public boolean update(UserDAO userDAO, User admin, String userId, String name, String email, String password,
                           ShopEaseAdminUserActionStrategy.AdminUserActionResult result) {
         if (!(admin instanceof Admin)) {

@@ -1,138 +1,163 @@
 # ShopEase E-Commerce System (Group 5)
 
-A premium Java Swing e-commerce application prototype with complete business logic, SQLite database integration, and UI layers.
+A Java Swing e-commerce application with SQLite database, Observer / Singleton / Strategy design patterns, and separate setup for **Windows** and **macOS (Apple)**.
+
+> **Windows users:** see **`WINDOWS_HOW_TO_RUN.txt`** in the project root for step-by-step compile & run instructions (Command Prompt / PowerShell).
 
 ---
 
-## 🍎 macOS & Linux Setup & Guide
+## Works on both Windows and Mac
 
-Follow these steps if you are running macOS or Linux.
+| Step | macOS / Apple (Terminal) | Windows (Command Prompt) |
+|------|--------------------------|---------------------------|
+| **1. Compile** | `./compile.sh` | `compile.bat` |
+| **2. Run GUI** | `./run-gui.sh` | `run-gui.bat` |
+| **3. Run all tests** | `./run-tests.sh` | `run-tests.bat` |
 
-### 1. Prerequisites (macOS/Linux)
-- **JDK 11+** installed (Tested and compatible with JDK 17, 21, and 24).
-- **sqlite-jdbc.jar** located in the `lib/` directory.
-  > [!IMPORTANT]
-  > If the SQLite jar is missing or corrupted, download a fresh copy of the SQLite JDBC library from [Maven Central](https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/) and place it in the `lib/` folder as `lib/sqlite-jdbc.jar`.
+**Requirements (both platforms):**
+- JDK 11 or newer (17, 21, 24 tested)
+- `lib/sqlite-jdbc.jar` (or `lib\sqlite-jdbc.jar` on Windows) — included in this repo
 
-### 2. Compile the Project (macOS/Linux)
-Open your Terminal, navigate to the project directory, and compile the code using:
+**First time on Mac only** — make scripts executable:
 ```bash
-# Make scripts executable (only needed once)
-chmod +x compile.sh run-gui.sh
+chmod +x compile.sh run-gui.sh run-tests.sh
+```
 
-# Run compilation script
+**Windows users in Git Bash** can also run `./compile.sh` and `./run-gui.sh` like Mac users.
+
+**Database:** `shopease.db` is created automatically in the project root on first run (same folder as `compile.sh` / `compile.bat`).
+
+---
+
+## macOS / Apple — detailed steps
+
+### 1. Prerequisites
+- Install JDK 11+ ([Adoptium](https://adoptium.net/) or Oracle JDK)
+- Ensure `lib/sqlite-jdbc.jar` exists
+
+### 2. Compile
+```bash
+chmod +x compile.sh run-gui.sh run-tests.sh   # once only
 ./compile.sh
 ```
 
-*Alternatively, compile manually without using the script:*
+Manual compile:
 ```bash
 find code -name "*.java" > sources.txt
 mkdir -p bin
 javac -encoding UTF-8 -d bin -cp "lib/sqlite-jdbc.jar" @sources.txt
 ```
 
-### 3. Run the GUI (macOS/Linux)
-Launch the main application interface using:
+### 3. Run GUI
 ```bash
 ./run-gui.sh
 ```
 
-*Alternatively, run the application class manually:*
+Manual run (classpath uses `:` on Mac):
 ```bash
 java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.ui.ShopEaseApp
 ```
 
-### 4. Run Tests (macOS/Linux)
-To verify all systems and run automated unit/integration tests:
+### 4. Run tests
 ```bash
-# Full System test verification suite
-java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.FullSystemTest
+./run-tests.sh
+```
 
-# Basic Smoke test
+Or individually:
+```bash
 java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.SmokeTest
+java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.FeatureTest
+java -cp "bin:lib/sqlite-jdbc.jar" com.shopease.FullSystemTest
 ```
 
 ---
 
-## 🪟 Windows Setup & Guide
+## Windows — detailed steps
 
-Follow these steps if you are running Windows.
+### 1. Prerequisites
+- Install JDK 11+ and add `java` / `javac` to PATH ([Adoptium](https://adoptium.net/))
+- Ensure `lib\sqlite-jdbc.jar` exists
 
-### 1. Prerequisites (Windows)
-- **JDK 11+** installed (Tested and compatible with JDK 17, 21, and 24).
-- **sqlite-jdbc.jar** located in the `lib\` directory.
-  > [!IMPORTANT]
-  > If the SQLite jar is missing or corrupted, download a fresh copy of the SQLite JDBC library from [Maven Central](https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/) and place it in the `lib\` folder as `lib\sqlite-jdbc.jar`.
-
-### 2. Compile the Project (Windows)
-Open **Command Prompt** (cmd) or **PowerShell**, navigate to the project directory, and compile:
+### 2. Compile
+Open **Command Prompt** or **PowerShell** in the project folder:
 ```cmd
-.\compile.bat
+compile.bat
 ```
 
-*Alternatively, compile manually without using the script:*
+Manual compile:
 ```cmd
 dir /s /b code\*.java > sources.txt
 if not exist bin mkdir bin
 javac -encoding UTF-8 -d bin -cp "lib\sqlite-jdbc.jar" @sources.txt
 ```
 
-### 3. Run the GUI (Windows)
-Launch the main application interface using:
+### 3. Run GUI
 ```cmd
-.\run-gui.bat
+run-gui.bat
 ```
 
-*Alternatively, run the application class manually (note that Windows uses `;` as the classpath separator):*
+Manual run (classpath uses `;` on Windows):
 ```cmd
 java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.ui.ShopEaseApp
 ```
 
-### 4. Run Tests (Windows)
-To run the automated tests on Windows:
+### 4. Run tests
 ```cmd
-# Full System test verification suite
-java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.FullSystemTest
+run-tests.bat
+```
 
-# Basic Smoke test
+Or individually:
+```cmd
 java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.SmokeTest
+java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.FeatureTest
+java -cp "bin;lib\sqlite-jdbc.jar" com.shopease.FullSystemTest
 ```
 
 ---
 
-## 🔑 Default Credentials (Shared)
+## VS Code / Cursor (Mac or Windows)
 
-The database file `shopease.db` is automatically created in the root directory upon the first run. The system comes pre-seeded with the following admin account:
-
-| Role | Email / Username | Password |
-| :--- | :--- | :--- |
-| **Admin** | `admin@email.admin.my` | `adminpass` |
-| **Customer** | *Register a new account via the GUI signup panel* | *(custom)* |
+1. Open the project root folder (the one containing `code/` and `lib/`)
+2. Install the **Extension Pack for Java**
+3. Settings in `.vscode/settings.json` already point to `code/` and `lib/**/*.jar`
+4. Run **ShopEase GUI (Mac/Windows)** from the Run and Debug panel
 
 ---
 
-## 📂 Project Architecture
+## Default login
+
+| Role | Email | Password |
+|------|-------|----------|
+| **Admin** | `admin@email.admin.my` | `adminpass` |
+| **Customer** | Register via Sign Up in the GUI | *(your choice)* |
+
+---
+
+## Project structure
 
 ```
 TT2L_G5_ShopEaseEcommerceSystem/
-├── code/
-│   └── com/
-│       └── shopease/
-│           ├── dao/        # Database access objects (SQLite interactions)
-│           ├── observer/   # Observer design pattern interfaces
-│           ├── service/    # Core business and service logic 
-│           ├── strategy/   # Payment strategies (Credit Card, MAE, TNG, DuitNow)
-│           └── ui/         # Java Swing GUI Panels and Dialogs
-├── lib/
-│   └── sqlite-jdbc.jar     # SQLite JDBC driver
-├── compile.sh / .bat       # OS-specific compilation scripts
-└── run-gui.sh / .bat       # OS-specific GUI runners
+├── code/com/shopease/
+│   ├── dao/        # SQLite database access
+│   ├── observer/   # Observer pattern (alerts, UI refresh)
+│   ├── singleton/  # One cart / wishlist per customer
+│   ├── strategy/   # Payment, profile, admin user CRUD
+│   ├── service/    # Business logic (ShopEaseService)
+│   └── ui/         # Swing GUI screens
+├── lib/sqlite-jdbc.jar
+├── compile.sh / compile.bat
+├── run-gui.sh / run-gui.bat
+└── run-tests.sh / run-tests.bat
 ```
 
 ---
 
-## 🎨 Implemented Design Patterns
+## Design patterns (Assignment 2)
 
-* **Singleton**: Applied to [DatabaseConnection](file:///Users/serenehong/Desktop/TT2L_G5_ShopEaseEcommerceSystem/code/com/shopease/dao/DatabaseConnection.java) to manage a single connection instance and `ShopEaseCartSingleton` to maintain a single cart context per customer session.
-* **Strategy Pattern**: Used to encapsulate different payment methods (Credit Card, MAE, DNG, Touch 'n Go) with a unified provider interface in [ShopEasePaymentStrategyProvider](file:///Users/serenehong/Desktop/TT2L_G5_ShopEaseEcommerceSystem/code/com/shopease/strategy/ShopEasePaymentStrategyProvider.java).
-* **Observer Pattern**: Implements low-stock alerts dynamically notifying admin systems when stock is reduced below thresholds.
+| Pattern | Where | Purpose |
+|---------|-------|---------|
+| **Singleton** | `ShopEaseCartSingleton`, `ShopEaseWishlistSingleton` | One cart/wishlist per customer session |
+| **Observer** | `ShopEaseInventorySubject` + `*Observer` classes | Stock alerts, login popups, live UI refresh |
+| **Strategy** | `ShopEasePaymentStrategySelector`, payment/profile/admin classes | Swap payment method or business rules at runtime |
+
+See `code/com/shopease/DesignPatterns.java` for a full class list.

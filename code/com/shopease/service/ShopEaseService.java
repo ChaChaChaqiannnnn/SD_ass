@@ -11,7 +11,6 @@ import com.shopease.observer.*;
 import com.shopease.singleton.ShopEaseCartSingleton;
 import com.shopease.singleton.ShopEaseWishlistSingleton;
 import com.shopease.strategy.*;
-import com.shopease.util.CustomerIdGenerator;
 import com.shopease.util.OrderIdGenerator;
 import com.shopease.util.UserAccountUtils;
 
@@ -19,6 +18,16 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * The "brain" of ShopEase — sits between the UI screens and the database (DAO layer).
+ * <p>
+ * When you explain this class to your lecturer, say:
+ * <ul>
+ *   <li><b>Singleton</b> — on login we load one cart + one wishlist per customer; DAOs share {@code ShopEaseDatabaseManager}</li>
+ *   <li><b>Observer</b> — stock changes and login events are published to popup/refresh observers</li>
+ *   <li><b>Strategy</b> — payment, profile, admin user actions, login validation, and inventory actions swap algorithms at runtime</li>
+ * </ul>
+ */
 public class ShopEaseService {
     private ProductDAO productDAO;
     private UserDAO userDAO;
@@ -30,11 +39,18 @@ public class ShopEaseService {
     private ShopEaseCartSingleton userCart;
     private ShopEaseWishlistSingleton userWishlist;
     private ShopEaseInventorySubject inventorySystem;
+    // Strategy objects — we pick the algorithm once here, then call it when needed (no if-else chains in UI)
     private final ShopEaseProfileUpdateStrategy profileUpdateStrategy = new CustomerProfileUpdateStrategy();
     private final ShopEaseAdminUserActionStrategy deleteUserStrategy = new DeleteCustomerUserStrategy();
-    private final CreateCustomerUserStrategy createUserStrategy = new CreateCustomerUserStrategy();
-    private final UpdateCustomerUserStrategy updateUserStrategy = new UpdateCustomerUserStrategy();
+    private final ShopEaseCreateCustomerStrategy createUserStrategy = new CreateCustomerUserStrategy();
+    private final ShopEaseUpdateCustomerStrategy updateUserStrategy = new UpdateCustomerUserStrategy();
+    private final ShopEaseRegisterCustomerStrategy registerCustomerStrategy = new RegisterCustomerStrategy();
+    private final ShopEaseLoginValidationStrategy loginValidationStrategy = new DefaultLoginValidationStrategy();
+    private final ShopEaseInventoryActionStrategy restockStrategy = new RestockInventoryStrategy();
+    private final ShopEaseInventoryActionStrategy reduceStrategy = new ReduceInventoryStrategy();
+    private final ShopEaseInventoryActionStrategy undoStrategy = new UndoInventoryStrategy();
     private String lastMessage = "";
+    private String lastOrderId = "";
     private AdminInventoryLog lastUndoableStockAction;
 
     public ShopEaseService() {
@@ -59,77 +75,44 @@ public class ShopEaseService {
         }
     }
 
+    // ==================== LOGIN (Singleton + Observer setup happens here) ====================
+
     public boolean login(String email, String password) {
         lastMessage = "";
-        if (email == null || password == null) {
-            lastMessage = "Email and password are required.";
+        ShopEaseLoginValidationStrategy.LoginValidationResult validationResult =
+                new ShopEaseLoginValidationStrategy.LoginValidationResult();
+        if (!loginValidationStrategy.validate(userDAO, email, password, validationResult)) {
+            lastMessage = validationResult.message;
             return false;
         }
-        String trimmedEmail = UserAccountUtils.normalizeEmail(email);
-        User user = userDAO.getUserByEmail(trimmedEmail);
-        if (user != null && user.getPassword().equals(password)) {
-            this.currentUser = user;
-            this.inventorySystem = new ShopEaseInventorySubject();
-            this.userCart = null;
-            this.lastUndoableStockAction = null;
+        User user = validationResult.user;
+        this.currentUser = user;
+        this.inventorySystem = new ShopEaseInventorySubject();
+        this.userCart = null;
+        this.lastUndoableStockAction = null;
 
-            if (user instanceof Customer) {
-                userCart = ShopEaseCartSingleton.getInstance(user.getUserId());
-                userWishlist = ShopEaseWishlistSingleton.getInstance(user.getUserId());
-                inventorySystem.attach(new ShopEaseShoppingCartObserver(userCart));
-            } else {
-                userWishlist = null;
-            }
-            setupInventoryObservers();
-            return true;
+        if (user instanceof Customer) {
+            // Singleton — each customer gets exactly ONE in-memory cart and wishlist for this session
+            userCart = ShopEaseCartSingleton.getInstance(user.getUserId());
+            userWishlist = ShopEaseWishlistSingleton.getInstance(user.getUserId());
+            // Observer — if stock hits zero, auto-remove that product from this customer's cart
+            inventorySystem.attach(new ShopEaseCartStockSyncObserver(userCart));
+        } else {
+            userWishlist = null; // admins don't shop, so no cart/wishlist singleton
         }
-        lastMessage = "Invalid email or password.";
-        return false;
+        setupInventoryObservers(); // always attach the console admin log observer
+        return true;
     }
 
     public boolean registerCustomer(User customer) {
         lastMessage = "";
-        if (customer == null) {
-            lastMessage = "Invalid registration data.";
+        ShopEaseRegisterCustomerStrategy.RegisterCustomerResult result =
+                new ShopEaseRegisterCustomerStrategy.RegisterCustomerResult();
+        if (!registerCustomerStrategy.register(userDAO, customer, result)) {
+            lastMessage = result.message;
             return false;
         }
-        if (customer.getName() == null || customer.getName().trim().isEmpty()) {
-            lastMessage = "Name is required.";
-            return false;
-        }
-        String email = UserAccountUtils.normalizeEmail(customer.getEmail());
-        if (!UserAccountUtils.isValidEmail(email)) {
-            lastMessage = "Valid email is required.";
-            return false;
-        }
-        if (customer.getPassword() == null || customer.getPassword().length() < 4) {
-            lastMessage = "Password must be at least 4 characters.";
-            return false;
-        }
-        String userId = customer.getUserId();
-        if (userId == null || userId.isBlank()) {
-            userId = CustomerIdGenerator.nextId();
-        }
-        if (userDAO.getUserByEmail(email) != null) {
-            lastMessage = "An account with this email already exists.";
-            return false;
-        }
-        if (userDAO.getUserById(userId) != null) {
-            userId = CustomerIdGenerator.nextId();
-        }
-        Customer toSave = new Customer(userId, customer.getName().trim(), email, customer.getPassword());
-        if (!userDAO.insertUser(toSave)) {
-            String kind = userDAO.lastInsertErrorKind(toSave);
-            if ("email".equals(kind)) {
-                lastMessage = "An account with this email already exists.";
-            } else if ("id".equals(kind)) {
-                lastMessage = "Could not assign a unique user ID. Please try again.";
-            } else {
-                lastMessage = "Registration failed. Please try again.";
-            }
-            return false;
-        }
-        lastMessage = "Account created successfully.";
+        lastMessage = result.message;
         return true;
     }
 
@@ -141,6 +124,11 @@ public class ShopEaseService {
         return lastMessage;
     }
 
+    /** Order ID from the most recent successful checkout, or empty if none. */
+    public String getLastOrderId() {
+        return lastOrderId == null ? "" : lastOrderId;
+    }
+
     public void logout() {
         this.currentUser = null;
         this.userCart = null;
@@ -150,11 +138,14 @@ public class ShopEaseService {
         this.lastUndoableStockAction = null;
     }
 
+    // ==================== OBSERVER PATTERN (subject notifies listeners) ====================
+
     private void setupInventoryObservers() {
-        inventorySystem.attach(new ShopEaseAdminObserver());
+        // This observer prints LOW/OUT stock messages to the console for admins
+        inventorySystem.attach(new ShopEaseInventoryAdminLogObserver());
     }
 
-    /** Register an Observer (inventory alerts, UI refresh, cart reminder). */
+    /** UI screens call this to register extra observers (popups, live refresh, login reminders). */
     public void attachObserver(ShopEaseInventoryObserver observer) {
         if (observer != null) {
             inventorySystem.attach(observer);
@@ -167,7 +158,7 @@ public class ShopEaseService {
         }
     }
 
-    /** Observer: admin login summary of products that are low or out of stock. */
+    /** Builds a summary list, then fires ADMIN_LOGIN_STOCK so the login popup observer can show it. */
     public void publishAdminLowStockOnLogin() {
         if (!(currentUser instanceof Admin)) {
             return;
@@ -188,11 +179,11 @@ public class ShopEaseService {
             }
         }
         if (summary.length() > 0) {
-            inventorySystem.publishEvent("ADMIN_LOGIN_STOCK", summary.toString());
+            inventorySystem.publishEvent(ShopEaseAppEvents.ADMIN_LOGIN_STOCK, summary.toString());
         }
     }
 
-    /** Observer: wishlist items that were out of stock and are available again (Singleton wishlist). */
+    /** Compares saved stock snapshots with current stock — tells customer when wishlist items are back. */
     public void publishWishlistRestockOnLogin() {
         if (userWishlist == null || currentUser == null) {
             return;
@@ -210,11 +201,11 @@ public class ShopEaseService {
             wishlistDAO.saveStockSnapshot(currentUser.getUserId(), p.getProductId(), now);
         }
         if (restocked.length() > 0) {
-            inventorySystem.publishEvent("WISHLIST_RESTOCK", restocked.toString());
+            inventorySystem.publishEvent(ShopEaseAppEvents.WISHLIST_RESTOCK, restocked.toString());
         }
     }
 
-    /** Observer pattern: notify customer if Singleton cart has items after login. */
+    /** If the Singleton cart still has items, publish CART_REMINDER so the popup observer can nudge the user. */
     public void publishCartReminderIfNeeded() {
         syncCartWithDatabase();
         int count = getCartItemCount();
@@ -224,7 +215,7 @@ public class ShopEaseService {
         String message = count == 1
                 ? "You have 1 item waiting in your cart. Open View Cart to review or checkout."
                 : "You have " + count + " items waiting in your cart. Open View Cart to review or checkout.";
-        inventorySystem.publishEvent("CART_REMINDER", message);
+        inventorySystem.publishEvent(ShopEaseAppEvents.CART_REMINDER, message);
     }
 
     /** Keeps cart line items aligned with current database stock and prices. */
@@ -251,9 +242,10 @@ public class ShopEaseService {
         }
     }
 
+    /** Called after any write — tells DataChangeRefreshObserver to repaint open screens. */
     private void notifyDataChanged() {
         syncCartWithDatabase();
-        inventorySystem.publishEvent("DATA_CHANGED", "");
+        inventorySystem.publishEvent(ShopEaseAppEvents.DATA_CHANGED, "");
     }
 
     public List<Product> getAllProducts() {
@@ -274,72 +266,45 @@ public class ShopEaseService {
 
     public void updateProductStock(String productId, String productName, int newStock) {
         productDAO.updateStock(productId, Math.max(0, newStock));
+        // Observer — setStock checks thresholds and may fire LOW_STOCK or OUT_OF_STOCK events
         inventorySystem.setStock(Math.max(0, newStock), productName);
     }
 
     public boolean restockProduct(String productId, int amountToAdd) {
-        return adjustAdminStock(productId, amountToAdd, "RESTOCK", "");
+        return runInventoryAction(restockStrategy, productId, amountToAdd, "");
     }
 
     public boolean reduceStockProduct(String productId, int amountToReduce, String remarks) {
-        lastMessage = "";
-        if (remarks == null || remarks.trim().isEmpty()) {
-            lastMessage = "Remarks are required when reducing stock.";
-            return false;
-        }
-        if (amountToReduce <= 0) {
-            lastMessage = "Reduce amount must be greater than 0.";
-            return false;
-        }
-        return adjustAdminStock(productId, -amountToReduce, "REDUCE", remarks.trim());
+        return runInventoryAction(reduceStrategy, productId, amountToReduce, remarks);
     }
 
-    private boolean adjustAdminStock(String productId, int quantityChange, String actionType, String remarks) {
+    private boolean runInventoryAction(ShopEaseInventoryActionStrategy strategy,
+                                       String productId, int amount, String remarks) {
         lastMessage = "";
-        if (!(currentUser instanceof Admin)) {
-            lastMessage = "Only admins can change stock.";
+        ShopEaseInventoryActionStrategy.InventoryActionResult result =
+                new ShopEaseInventoryActionStrategy.InventoryActionResult();
+        ShopEaseInventoryActionStrategy.InventoryActionContext context =
+                new ShopEaseInventoryActionStrategy.InventoryActionContext(
+                        productDAO,
+                        adminActivityDAO,
+                        inventorySystem,
+                        currentUser,
+                        productId,
+                        amount,
+                        remarks,
+                        lastUndoableStockAction);
+        if (!strategy.execute(context, result)) {
+            lastMessage = result.message;
+            if (result.clearedUndoAction != null) {
+                lastUndoableStockAction = null;
+            }
             return false;
         }
-        if (quantityChange == 0) {
-            lastMessage = "Change amount cannot be zero.";
-            return false;
-        }
-        Product product = productDAO.getProductById(productId);
-        if (product == null) {
-            lastMessage = "Product not found.";
-            return false;
-        }
-
-        int stockBefore = product.getStockQuantity();
-        int stockAfter = Math.max(0, stockBefore + quantityChange);
-        if (actionType.equals("REDUCE") && quantityChange < 0 && stockAfter == stockBefore) {
-            lastMessage = "Stock is already 0 for " + product.getName() + ".";
-            return false;
-        }
-
-        updateProductStock(productId, product.getName(), stockAfter);
-
-        AdminInventoryLog log = new AdminInventoryLog(
-                currentUser.getUserId(),
-                currentUser.getName(),
-                productId,
-                product.getName(),
-                actionType,
-                stockAfter - stockBefore,
-                stockBefore,
-                stockAfter,
-                remarks,
-                new java.util.Date()
-        );
-        adminActivityDAO.insertLog(log);
-        lastUndoableStockAction = log;
-
-        if ("REDUCE".equals(actionType)) {
-            lastMessage = "Reduced " + product.getName() + " by " + (-quantityChange)
-                    + " (now " + stockAfter + "). Remark saved.";
-        } else {
-            lastMessage = "Restocked " + product.getName() + " by +" + quantityChange
-                    + " (now " + stockAfter + ").";
+        lastMessage = result.message;
+        if (strategy instanceof UndoInventoryStrategy) {
+            lastUndoableStockAction = null;
+        } else if (result.newLog != null) {
+            lastUndoableStockAction = result.newLog;
         }
         notifyDataChanged();
         return true;
@@ -350,42 +315,12 @@ public class ShopEaseService {
     }
 
     public boolean undoLastRestock() {
-        lastMessage = "";
         if (!canUndoLastRestock()) {
             lastMessage = "Nothing to undo.";
             return false;
         }
-
-        AdminInventoryLog previous = lastUndoableStockAction;
-        Product product = productDAO.getProductById(previous.getProductId());
-        if (product == null) {
-            lastMessage = "Product no longer exists.";
-            lastUndoableStockAction = null;
-            return false;
-        }
-
-        int currentStock = product.getStockQuantity();
-        int restoredStock = previous.getStockBefore();
-        updateProductStock(previous.getProductId(), previous.getProductName(), restoredStock);
-
-        AdminInventoryLog undoLog = new AdminInventoryLog(
-                currentUser.getUserId(),
-                currentUser.getName(),
-                previous.getProductId(),
-                previous.getProductName(),
-                "UNDO",
-                restoredStock - currentStock,
-                currentStock,
-                restoredStock,
-                "Undo " + previous.getActionType() + (previous.getRemarks().isEmpty() ? "" : ": " + previous.getRemarks()),
-                new java.util.Date()
-        );
-        adminActivityDAO.insertLog(undoLog);
-        lastUndoableStockAction = null;
-        lastMessage = "Undid " + previous.getActionType().toLowerCase() + " on "
-                + previous.getProductName() + " (back to " + restoredStock + ").";
-        notifyDataChanged();
-        return true;
+        return runInventoryAction(
+                undoStrategy, lastUndoableStockAction.getProductId(), 0, "");
     }
 
     public List<AdminInventoryLog> getAdminActivityHistory() {
@@ -394,6 +329,8 @@ public class ShopEaseService {
         }
         return List.of();
     }
+
+    // ==================== SHOPPING CART (uses ShopEaseCartSingleton) ====================
 
     public ShopEaseCartSingleton getCart() {
         return userCart;
@@ -523,8 +460,11 @@ public class ShopEaseService {
         return false;
     }
 
+    // ==================== CHECKOUT (Strategy pattern for payment method) ====================
+
     public boolean checkout(ShopEasePaymentStrategy strategy) {
         lastMessage = "";
+        lastOrderId = "";
         if (userCart == null || userCart.getItems().isEmpty()) {
             lastMessage = "Your cart is empty.";
             return false;
@@ -547,6 +487,7 @@ public class ShopEaseService {
             total += fresh.getPrice() * item.getQuantity();
         }
 
+        // Strategy — the UI already picked Credit Card / DuitNow / MAE / TNG; we just run it here
         ShopEasePaymentContext context = new ShopEasePaymentContext(strategy);
         context.executeStrategy(total);
 
@@ -571,12 +512,13 @@ public class ShopEaseService {
             updateProductStock(prod.getProductId(), prod.getName(), newStock);
         }
 
+        lastOrderId = orderId;
         lastMessage = "Order " + orderId + " placed successfully.";
         notifyDataChanged();
         return true;
     }
 
-    // --- Wishlist ---
+    // ==================== WISHLIST (uses ShopEaseWishlistSingleton + database) ====================
     public boolean addToWishlist(String productId) {
         lastMessage = "";
         if (!(currentUser instanceof Customer)) {
@@ -640,7 +582,8 @@ public class ShopEaseService {
         return false;
     }
 
-    // --- Profile ---
+    // ==================== PROFILE (Strategy — CustomerProfileUpdateStrategy) ====================
+
     public boolean updateCustomerProfile(String name, String email, String newPassword) {
         lastMessage = "";
         ShopEaseProfileUpdateStrategy.ProfileUpdateResult result =
@@ -655,7 +598,8 @@ public class ShopEaseService {
         return true;
     }
 
-    // --- Admin user management ---
+    // ==================== ADMIN USER CRUD (Strategy — Create / Update / Delete) ====================
+
     public List<User> getAllUsersForAdmin() {
         if (!(currentUser instanceof Admin)) {
             return List.of();

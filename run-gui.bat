@@ -1,6 +1,7 @@
 @echo off
 REM ShopEase — run GUI (Windows)
-REM Make sure you have compiled first: .\compile.bat
+REM Run compile.bat first, then:  run-gui.bat
+REM Full guide: WINDOWS_HOW_TO_RUN.txt
 
 setlocal
 

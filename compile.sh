@@ -1,5 +1,5 @@
 #!/bin/bash
-# ShopEase — compile script (Group 5)
+# ShopEase — compile script (macOS / Linux / Git Bash on Windows)
 set -e
 cd "$(dirname "$0")"
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# ShopEase — run GUI (recommended for demo)
+# ShopEase — run GUI (macOS / Linux / Git Bash on Windows)
 set -e
 cd "$(dirname "$0")"
 [[ -d bin ]] || { echo "Run ./compile.sh first"; exit 1; }

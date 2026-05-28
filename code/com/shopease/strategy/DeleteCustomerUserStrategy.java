@@ -4,6 +4,10 @@ import com.shopease.dao.UserDAO;
 import com.shopease.model.Admin;
 import com.shopease.model.User;
 
+/**
+ * Strategy Pattern — admin deletes a customer account.
+ * AdminUsersPanel → ShopEaseService.deleteUserAsAdmin() → this class.
+ */
 public class DeleteCustomerUserStrategy implements ShopEaseAdminUserActionStrategy {
 
     @Override

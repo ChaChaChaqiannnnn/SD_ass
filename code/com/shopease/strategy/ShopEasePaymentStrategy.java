@@ -1,7 +1,9 @@
 package com.shopease.strategy;
 
-//this is the plan for how all payments should work
+/**
+ * Strategy Pattern — common interface for all payment methods.
+ * Each method (Credit Card, DuitNow, MAE, TNG) implements execute() differently.
+ */
 public interface ShopEasePaymentStrategy {
-    //this is the action that finishes the payment
     void execute(double amount);
 }

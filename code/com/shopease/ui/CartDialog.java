@@ -3,7 +3,7 @@ package com.shopease.ui;
 import com.shopease.model.CartItem;
 import com.shopease.model.Product;
 import com.shopease.observer.ShopEaseInventoryObserver;
-import com.shopease.observer.ShopEaseUiRefreshObserver;
+import com.shopease.observer.ShopEaseDataChangeRefreshObserver;
 import com.shopease.service.ShopEaseService;
 import com.shopease.strategy.*;
 
@@ -14,9 +14,13 @@ import java.awt.*;
 import java.util.function.Consumer;
 
 /**
- * Cart review — edit quantities, remove items, or continue shopping without checkout.
+ * Cart popup — review items, pick payment method (Strategy), checkout, then show receipt.
+ * Also attaches DataChangeRefreshObserver so the cart list updates when stock changes elsewhere.
  */
 public class CartDialog extends JDialog {
+    private static final String DEFAULT_HINT =
+            "You can remove items or change quantity — checkout is optional.";
+
     private final ShopEaseService service;
     private final Consumer<String> onCartChanged;
     private final JPanel itemsPanel;
@@ -30,7 +34,7 @@ public class CartDialog extends JDialog {
         super(parent, "Your Cart", false);
         this.service = service;
         this.onCartChanged = onCartChanged;
-        this.uiRefreshObserver = new ShopEaseUiRefreshObserver(this::refreshCart);
+        this.uiRefreshObserver = new ShopEaseDataChangeRefreshObserver(this::refreshCart);
 
         if (service.getCart() == null) {
             JOptionPane.showMessageDialog(parent,
@@ -57,8 +61,7 @@ public class CartDialog extends JDialog {
         JLabel title = new JLabel("Review your cart");
         title.setFont(ShopEaseUIUtils.titleFont());
         title.setForeground(ShopEaseUIUtils.TEXT_PRIMARY);
-        hintLabel = ShopEaseUIUtils.createMutedLabel(
-                "You can remove items or change quantity — checkout is optional.");
+        hintLabel = ShopEaseUIUtils.createMutedLabel(DEFAULT_HINT);
         header.add(title, BorderLayout.NORTH);
         header.add(hintLabel, BorderLayout.SOUTH);
         add(header, BorderLayout.NORTH);
@@ -90,8 +93,8 @@ public class CartDialog extends JDialog {
         payRow.setOpaque(false);
         payRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         payRow.add(new JLabel("Payment:"));
-        // Strategy pattern — options sourced from ShopEasePaymentStrategyProvider
-        paymentCombo = new JComboBox<>(ShopEasePaymentStrategyProvider.ALL_METHODS);
+        // Strategy — dropdown lists all payment methods from ShopEasePaymentStrategySelector
+        paymentCombo = new JComboBox<>(ShopEasePaymentStrategySelector.ALL_METHODS);
         paymentCombo.setFont(ShopEaseUIUtils.bodyFont());
         payRow.add(paymentCombo);
         footer.add(payRow);
@@ -148,6 +151,8 @@ public class CartDialog extends JDialog {
         if (service.getCart() == null) {
             return;
         }
+        hintLabel.setText(DEFAULT_HINT);
+        hintLabel.setForeground(ShopEaseUIUtils.TEXT_MUTED);
         service.syncCartWithDatabase();
         itemsPanel.removeAll();
         java.util.List<CartItem> items = service.getCart().getItems();
@@ -247,16 +252,27 @@ public class CartDialog extends JDialog {
         return row;
     }
 
+    /** Checkout button — Strategy pattern picks payment, then shows ReceiptDialog on success. */
     private void doCheckout() {
         if (service.getCart().getItems().isEmpty()) {
             showInlineNotice("Add items before checkout.");
             return;
         }
 
-        // Strategy pattern — strategy created from display name via ShopEasePaymentStrategyProvider
+        // Step 1 (Strategy) — turn the dropdown label into the correct payment strategy object
         final String paymentName = (String) paymentCombo.getSelectedItem();
         final ShopEasePaymentStrategy strategy =
-                ShopEasePaymentStrategyProvider.create(paymentName);
+                ShopEasePaymentStrategySelector.create(paymentName);
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "<html>Place order for <b>RM" + String.format("%.2f", service.getCartTotal())
+                        + "</b> using <b>" + paymentName + "</b>?</html>",
+                "Confirm checkout",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
 
         // Snapshot cart before the async call (cart is cleared on success)
         final java.util.List<CartItem> snapshot =
@@ -271,7 +287,7 @@ public class CartDialog extends JDialog {
         new javax.swing.SwingWorker<Boolean, Void>() {
             @Override
             protected Boolean doInBackground() {
-                // Strategy pattern — delegates to the concrete payment implementation
+                // Step 2 (Strategy) — service runs payment + saves order + updates stock
                 return service.checkout(strategy);
             }
 
@@ -282,17 +298,17 @@ public class CartDialog extends JDialog {
                 paymentCombo.setEnabled(true);
                 try {
                     if (get()) {
-                        StringBuilder receipt = new StringBuilder();
-                        receipt.append("Thank you! Order placed.\n\n");
-                        for (CartItem item : snapshot) {
-                            receipt.append(" • ").append(item.getProduct().getName())
-                                   .append(" x").append(item.getQuantity()).append("\n");
-                        }
-                        receipt.append("\nTotal: RM").append(String.format("%.2f", finalTotal));
-                        receipt.append("\nPaid via: ").append(paymentName);
-                        receipt.append("\n\n").append(service.getLastMessage());
-                        JOptionPane.showMessageDialog(CartDialog.this, receipt,
-                                "Order complete", JOptionPane.INFORMATION_MESSAGE);
+                        JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(CartDialog.this);
+                        String customerName = service.getCurrentUser() != null
+                                ? service.getCurrentUser().getName() : "";
+                        ReceiptDialog receipt = new ReceiptDialog(
+                                parentFrame,
+                                service.getLastOrderId(),
+                                customerName,
+                                snapshot,
+                                finalTotal,
+                                paymentName);
+                        receipt.setVisible(true);
                         notifyStatus();
                         dispose();
                     } else {

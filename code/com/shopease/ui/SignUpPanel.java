@@ -9,7 +9,10 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-/** Dedicated registration screen — separate from sign-in. */
+/**
+ * Registration screen — creates a new Customer in the database.
+ * After success, user is sent back to LoginPanel to sign in.
+ */
 public class SignUpPanel extends JPanel {
     private final ShopEaseService service;
     private final Runnable onSignUpSuccess;
@@ -81,6 +84,8 @@ public class SignUpPanel extends JPanel {
         loginLink.addActionListener(e -> onGoToLogin.run());
         switchRow.add(loginLink);
         card.add(switchRow);
+
+        confirmPasswordField.addActionListener(e -> attemptSignUp());
 
         JPanel centerWrap = new JPanel(new GridBagLayout());
         centerWrap.setOpaque(false);

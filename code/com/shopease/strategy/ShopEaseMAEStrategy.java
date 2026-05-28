@@ -1,6 +1,6 @@
 package com.shopease.strategy;
 
-//this is the way to pay using the mae app
+// Strategy Pattern — MAE app payment method
 public class ShopEaseMAEStrategy implements ShopEasePaymentStrategy {
     @Override
     public void execute(double amount) {

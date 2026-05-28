@@ -3,68 +3,84 @@ package com.shopease.ui;
 import com.shopease.model.CartItem;
 import com.shopease.model.Order;
 import com.shopease.observer.ShopEaseInventoryObserver;
-import com.shopease.observer.ShopEaseUiRefreshObserver;
+import com.shopease.observer.ShopEaseDataChangeRefreshObserver;
 import com.shopease.service.ShopEaseService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
+/**
+ * Read-only order history — plain labels (not a text box), no internal order IDs shown.
+ * <p>
+ * Observer Pattern — {@link com.shopease.observer.ShopEaseDataChangeRefreshObserver}
+ * reloads orders when checkout or admin changes fire {@code DATA_CHANGED}.
+ */
 public class OrderHistoryDialog extends JDialog {
     private static final SimpleDateFormat DATE_FMT = new SimpleDateFormat("dd MMM yyyy, HH:mm");
 
     private final ShopEaseService service;
-    private final JTextArea historyArea;
+    private final JPanel ordersPanel;
+    private final JLabel countLabel;
     private final ShopEaseInventoryObserver uiRefreshObserver;
 
     public OrderHistoryDialog(JFrame parent, ShopEaseService service) {
         super(parent, "Order History", true);
         this.service = service;
-        this.uiRefreshObserver = new ShopEaseUiRefreshObserver(this::reloadHistory);
+        this.uiRefreshObserver = new ShopEaseDataChangeRefreshObserver(this::reloadHistory);
 
-        setSize(600, 480);
-        setMinimumSize(new Dimension(580, 440));
+        setSize(580, 480);
+        setMinimumSize(new Dimension(520, 420));
         setLocationRelativeTo(parent);
         getContentPane().setBackground(ShopEaseUIUtils.BG_PAGE);
-        setLayout(new BorderLayout(12, 12));
+        setLayout(new BorderLayout(0, 0));
 
         JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-        header.setBorder(new EmptyBorder(16, 20, 0, 20));
+        header.setBackground(ShopEaseUIUtils.BG_CARD);
+        header.setBorder(new EmptyBorder(18, 24, 14, 24));
+
+        JPanel titleBlock = new JPanel();
+        titleBlock.setLayout(new BoxLayout(titleBlock, BoxLayout.Y_AXIS));
+        titleBlock.setOpaque(false);
+
         JLabel title = new JLabel("Your past orders");
         title.setFont(ShopEaseUIUtils.titleFont());
-        JLabel subtitle = ShopEaseUIUtils.createMutedLabel("Order IDs use date + daily sequence (dd/MM/yy-###).");
-        header.add(title, BorderLayout.NORTH);
-        header.add(subtitle, BorderLayout.SOUTH);
+        title.setForeground(ShopEaseUIUtils.TEXT_PRIMARY);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        countLabel = ShopEaseUIUtils.createMutedLabel(" ");
+        countLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        titleBlock.add(title);
+        titleBlock.add(Box.createVerticalStrut(6));
+        titleBlock.add(countLabel);
+        header.add(titleBlock, BorderLayout.WEST);
         add(header, BorderLayout.NORTH);
 
-        historyArea = new JTextArea();
-        historyArea.setEditable(false);
-        historyArea.setFont(ShopEaseUIUtils.bodyFont());
-        historyArea.setBackground(ShopEaseUIUtils.BG_CARD);
-        historyArea.setBorder(new EmptyBorder(12, 14, 12, 14));
-        historyArea.setLineWrap(true);
-        historyArea.setWrapStyleWord(true);
+        ordersPanel = new JPanel();
+        ordersPanel.setLayout(new BoxLayout(ordersPanel, BoxLayout.Y_AXIS));
+        ordersPanel.setBackground(ShopEaseUIUtils.BG_PAGE);
+        ordersPanel.setBorder(new EmptyBorder(12, 20, 12, 20));
 
-        JScrollPane scroll = new JScrollPane(historyArea);
-        scroll.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 232)));
+        JScrollPane scroll = new JScrollPane(ordersPanel);
+        scroll.setBorder(null);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
-        JPanel center = new JPanel(new BorderLayout());
-        center.setOpaque(false);
-        center.setBorder(new EmptyBorder(8, 20, 8, 20));
-        center.add(scroll, BorderLayout.CENTER);
-        add(center, BorderLayout.CENTER);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        add(scroll, BorderLayout.CENTER);
 
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        bottom.setOpaque(false);
-        bottom.setBorder(new EmptyBorder(0, 16, 16, 16));
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        footer.setBackground(ShopEaseUIUtils.BG_CARD);
+        footer.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(new Color(220, 224, 232)),
+                new EmptyBorder(12, 20, 14, 20)));
         JButton closeBtn = new JButton("Close");
         ShopEaseUIUtils.styleSecondaryButton(closeBtn);
         closeBtn.addActionListener(e -> dispose());
-        bottom.add(closeBtn);
-        add(bottom, BorderLayout.SOUTH);
+        footer.add(closeBtn);
+        add(footer, BorderLayout.SOUTH);
 
         service.attachObserver(uiRefreshObserver);
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -78,33 +94,104 @@ public class OrderHistoryDialog extends JDialog {
     }
 
     private void reloadHistory() {
-        historyArea.setText(buildHistoryText(service.getOrderHistory()));
-        historyArea.setCaretPosition(0);
-    }
+        ordersPanel.removeAll();
+        List<Order> orders = service.getOrderHistory();
 
-    private String buildHistoryText(List<Order> orders) {
+        int count = orders.size();
+        countLabel.setText(count == 0
+                ? "No orders yet"
+                : count == 1 ? "1 order" : count + " orders");
+
         if (orders.isEmpty()) {
-            return "No orders yet.\n\nAdd items to your cart and checkout to see history here.";
-        }
-
-        StringBuilder sb = new StringBuilder();
-        for (Order o : orders) {
-            sb.append("Order ").append(o.getOrderId())
-              .append("\n  Date: ").append(DATE_FMT.format(o.getOrderDate()))
-              .append("  ·  Total: RM ").append(String.format("%.2f", o.getTotalAmount()))
-              .append("  ·  ").append(o.getStatus())
-              .append("\n  Items:\n");
-            if (o.getItems() == null || o.getItems().isEmpty()) {
-                sb.append("    (no line items recorded)\n");
-            } else {
-                for (CartItem item : o.getItems()) {
-                    sb.append("    • ").append(item.getProduct().getName())
-                      .append(" × ").append(item.getQuantity())
-                      .append("\n");
+            ordersPanel.add(buildEmptyState());
+        } else {
+            for (int i = 0; i < orders.size(); i++) {
+                ordersPanel.add(buildOrderCard(orders.get(i)));
+                if (i < orders.size() - 1) {
+                    ordersPanel.add(Box.createVerticalStrut(10));
                 }
             }
-            sb.append("\n");
         }
-        return sb.toString();
+        ordersPanel.revalidate();
+        ordersPanel.repaint();
+    }
+
+    private JPanel buildEmptyState() {
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(ShopEaseUIUtils.BG_CARD);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(new Color(220, 224, 232), 1, true),
+                new EmptyBorder(28, 24, 28, 24)));
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
+
+        JLabel heading = new JLabel("No orders yet");
+        heading.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
+        heading.setForeground(ShopEaseUIUtils.TEXT_PRIMARY);
+        heading.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel body = new JLabel("<html><body style='width:380px;line-height:1.5'>"
+                + "When you checkout, your purchases will show up here."
+                + "</body></html>");
+        body.setFont(ShopEaseUIUtils.bodyFont());
+        body.setForeground(ShopEaseUIUtils.TEXT_MUTED);
+        body.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        card.add(heading);
+        card.add(Box.createVerticalStrut(8));
+        card.add(body);
+        return card;
+    }
+
+    private JPanel buildOrderCard(Order order) {
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(ShopEaseUIUtils.BG_CARD);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(new Color(220, 224, 232), 1, true),
+                new EmptyBorder(16, 18, 16, 18)));
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 220));
+
+        JLabel dateLine = new JLabel(DATE_FMT.format(order.getOrderDate()));
+        dateLine.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 15));
+        dateLine.setForeground(ShopEaseUIUtils.TEXT_PRIMARY);
+        dateLine.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel summary = new JLabel(String.format("RM %.2f  ·  %s",
+                order.getTotalAmount(), order.getStatus()));
+        summary.setFont(ShopEaseUIUtils.bodyFont());
+        summary.setForeground(ShopEaseUIUtils.TEXT_MUTED);
+        summary.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel itemsHeading = new JLabel("Items");
+        itemsHeading.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
+        itemsHeading.setForeground(ShopEaseUIUtils.TEXT_PRIMARY);
+        itemsHeading.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        card.add(dateLine);
+        card.add(Box.createVerticalStrut(6));
+        card.add(summary);
+        card.add(Box.createVerticalStrut(12));
+        card.add(itemsHeading);
+        card.add(Box.createVerticalStrut(6));
+
+        if (order.getItems() == null || order.getItems().isEmpty()) {
+            JLabel none = ShopEaseUIUtils.createMutedLabel("No item details recorded.");
+            none.setAlignmentX(Component.LEFT_ALIGNMENT);
+            card.add(none);
+        } else {
+            for (CartItem item : order.getItems()) {
+                JLabel line = new JLabel("  •  " + item.getProduct().getName()
+                        + "  ×  " + item.getQuantity());
+                line.setFont(ShopEaseUIUtils.bodyFont());
+                line.setForeground(ShopEaseUIUtils.TEXT_PRIMARY);
+                line.setAlignmentX(Component.LEFT_ALIGNMENT);
+                card.add(line);
+                card.add(Box.createVerticalStrut(2));
+            }
+        }
+        return card;
     }
 }

@@ -1,6 +1,10 @@
+# Generated at compile time (paths differ between Windows and Mac — always regenerate locally)
+sources.txt
+
 # Ignore class files (use bin/ only)
 *.class
 **/*.class
+code/**/*.class
 /com/
 /bin/
 
