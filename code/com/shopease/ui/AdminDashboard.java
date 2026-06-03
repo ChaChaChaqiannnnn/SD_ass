@@ -54,7 +54,13 @@ public class AdminDashboard extends JPanel {
         contentPanel = new JPanel(contentLayout);
         contentPanel.setOpaque(false);
         contentPanel.setBorder(new EmptyBorder(4, 10, 10, 10));
-        contentPanel.add(inventoryPanel, CARD_INVENTORY);
+        JScrollPane inventoryScroll = new JScrollPane(inventoryPanel,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        inventoryScroll.setBorder(null);
+        inventoryScroll.setOpaque(false);
+        inventoryScroll.getViewport().setOpaque(false);
+        contentPanel.add(inventoryScroll, CARD_INVENTORY);
         contentPanel.add(usersPanel, CARD_USERS);
         add(contentPanel, BorderLayout.CENTER);
 

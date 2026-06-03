@@ -17,7 +17,7 @@ import java.util.List;
  * Admin inventory — select a product, then add or reduce stock with clear grouped actions.
  * Stock changes trigger Observer events so other screens refresh too.
  */
-public class AdminInventoryPanel extends JPanel {
+public class AdminInventoryPanel extends JPanel implements Scrollable {
     private static final SimpleDateFormat TIME_FMT = new SimpleDateFormat("dd MMM HH:mm");
     private static final Color FIELD_BG = new Color(236, 240, 241);
     private static final Color PANEL_BG = new Color(52, 73, 94);
@@ -110,6 +110,46 @@ public class AdminInventoryPanel extends JPanel {
 
         relayoutActionCards();
         refreshAll();
+    }
+
+    @Override
+    public Dimension getMinimumSize() {
+        return new Dimension(700, 500);
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 20;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 100;
+    }
+
+    /** Fill the viewport normally; only enable horizontal scrolling when viewport is narrower than minimum. */
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        Container parent = getParent();
+        if (parent instanceof JViewport vp) {
+            return vp.getWidth() >= getMinimumSize().width;
+        }
+        return true;
+    }
+
+    /** Fill the viewport vertically; only enable vertical scrolling when viewport is shorter than minimum. */
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        Container parent = getParent();
+        if (parent instanceof JViewport vp) {
+            return vp.getHeight() >= getMinimumSize().height;
+        }
+        return true;
     }
 
     private JPanel buildProductsPanel() {
