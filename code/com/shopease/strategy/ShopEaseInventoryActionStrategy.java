@@ -7,14 +7,14 @@ import com.shopease.model.User;
 import com.shopease.observer.ShopEaseInventorySubject;
 
 /**
- * Strategy Pattern — interchangeable admin inventory stock actions
- * (restock, reduce, undo).
+ * GoF Strategy — Strategy role (admin inventory algorithms).
  */
 public interface ShopEaseInventoryActionStrategy {
 
-    boolean execute(InventoryActionContext context, InventoryActionResult result);
+    boolean algorithmInterface(InventoryActionRequest request, InventoryActionResult result);
 
-    class InventoryActionContext {
+    /** Input data passed into inventory strategy algorithms. */
+    class InventoryActionRequest {
         public final ProductDAO productDAO;
         public final AdminActivityDAO adminActivityDAO;
         public final ShopEaseInventorySubject inventorySubject;
@@ -24,14 +24,14 @@ public interface ShopEaseInventoryActionStrategy {
         public final String remarks;
         public final AdminInventoryLog lastUndoableAction;
 
-        public InventoryActionContext(ProductDAO productDAO,
-                                      AdminActivityDAO adminActivityDAO,
-                                      ShopEaseInventorySubject inventorySubject,
-                                      User currentUser,
-                                      String productId,
-                                      int amount,
-                                      String remarks,
-                                      AdminInventoryLog lastUndoableAction) {
+        public InventoryActionRequest(ProductDAO productDAO,
+                                        AdminActivityDAO adminActivityDAO,
+                                        ShopEaseInventorySubject inventorySubject,
+                                        User currentUser,
+                                        String productId,
+                                        int amount,
+                                        String remarks,
+                                        AdminInventoryLog lastUndoableAction) {
             this.productDAO = productDAO;
             this.adminActivityDAO = adminActivityDAO;
             this.inventorySubject = inventorySubject;

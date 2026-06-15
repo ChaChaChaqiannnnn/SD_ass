@@ -2,7 +2,7 @@ package com.shopease.ui;
 
 import com.shopease.model.InventoryStockStatus;
 import com.shopease.model.Product;
-import com.shopease.observer.ShopEaseInventoryObserver;
+import com.shopease.observer.Observer;
 import com.shopease.observer.ShopEaseDataChangeRefreshObserver;
 import com.shopease.service.ShopEaseService;
 
@@ -23,7 +23,7 @@ public class WishlistDialog extends JDialog {
     private final ShopEaseService service;
     private final JPanel listPanel;
     private final JLabel countLabel;
-    private final ShopEaseInventoryObserver syncObserver;
+    private final Observer syncObserver;
 
     public WishlistDialog(JFrame parent, ShopEaseService service) {
         super(parent, "My Wishlist", false);

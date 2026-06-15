@@ -5,11 +5,9 @@ import javax.swing.SwingUtilities;
 import java.awt.Component;
 
 /**
- * Observer — AdminLoginStockAlertObserver
- * One-time popup when admin logs in listing every product that needs restocking.
- * Triggered by publishAdminLowStockOnLogin() in ShopEaseService.
+ * GoF Observer — ConcreteObserver (admin login low-stock summary popup).
  */
-public class ShopEaseAdminLoginStockAlertObserver implements ShopEaseInventoryObserver {
+public class ShopEaseAdminLoginStockAlertObserver extends ShopEaseAbstractObserver {
     private final Component parent;
 
     public ShopEaseAdminLoginStockAlertObserver(Component parent) {
@@ -17,12 +15,13 @@ public class ShopEaseAdminLoginStockAlertObserver implements ShopEaseInventoryOb
     }
 
     @Override
-    public void update(String event, String productName) {
-        if (!ShopEaseAppEvents.ADMIN_LOGIN_STOCK.equals(event)) {
+    protected void onStateChanged(SubjectState state) {
+        if (!ShopEaseAppEvents.ADMIN_LOGIN_STOCK.equals(state.getEvent())) {
             return;
         }
+        String detail = state.getProductName();
         SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
-                "<html><body style='width:320px'>" + productName.replace("\n", "<br>") + "</body></html>",
+                "<html><body style='width:320px'>" + detail.replace("\n", "<br>") + "</body></html>",
                 "Inventory needs attention",
                 JOptionPane.WARNING_MESSAGE));
     }

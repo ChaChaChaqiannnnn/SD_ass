@@ -138,6 +138,6 @@ TT2L_G5_ShopEaseEcommerceSystem/
 |---------|-------|---------|
 | **Singleton** | `ShopEaseCartSingleton`, `ShopEaseWishlistSingleton` | One cart/wishlist per customer session |
 | **Observer** | `ShopEaseInventorySubject` + `*Observer` classes | Stock alerts, login popups, live UI refresh |
-| **Strategy** | `ShopEasePaymentStrategySelector`, payment/profile/admin classes | Swap payment method or business rules at runtime |
+| **Strategy** | `ShopEasePaymentContext`, payment/profile/admin strategy classes | Swap payment method or business rules at runtime |
 
 See `code/com/shopease/DesignPatterns.java` for a full class list.

@@ -5,10 +5,9 @@ import javax.swing.SwingUtilities;
 import java.awt.Component;
 
 /**
- * Observer — CustomerCartReminderObserver
- * Friendly popup if the customer still has items in their Singleton cart after login.
+ * GoF Observer — ConcreteObserver (customer cart reminder on login).
  */
-public class ShopEaseCustomerCartReminderObserver implements ShopEaseInventoryObserver {
+public class ShopEaseCustomerCartReminderObserver extends ShopEaseAbstractObserver {
     private final Component parent;
 
     public ShopEaseCustomerCartReminderObserver(Component parent) {
@@ -16,12 +15,12 @@ public class ShopEaseCustomerCartReminderObserver implements ShopEaseInventoryOb
     }
 
     @Override
-    public void update(String event, String productName) {
-        if (!ShopEaseAppEvents.CART_REMINDER.equals(event)) {
+    protected void onStateChanged(SubjectState state) {
+        if (!ShopEaseAppEvents.CART_REMINDER.equals(state.getEvent())) {
             return;
         }
         SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
-                productName,
+                state.getProductName(),
                 "Cart reminder",
                 JOptionPane.INFORMATION_MESSAGE));
     }

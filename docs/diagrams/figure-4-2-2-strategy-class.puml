@@ -1,0 +1,66 @@
+@startuml figure-4-2-2-strategy-class
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam classFontSize 11
+
+title ShopEase Strategy (Payment) — pure GoF, no Factory
+
+class CartDialog <<GoF Client>> {
+  + paymentStrategyFor(name) : ShopEasePaymentStrategy
+  + doCheckout()
+}
+
+class ShopEaseService {
+  + checkout(strategy : ShopEasePaymentStrategy) : boolean
+}
+
+class ShopEasePaymentContext <<GoF Context>> {
+  - strategy : ShopEasePaymentStrategy
+  + setStrategy(s : ShopEasePaymentStrategy)
+  + contextInterface(amount : double)
+}
+
+interface ShopEasePaymentStrategy <<GoF Strategy>> {
+  + algorithmInterface(amount : double)
+}
+
+class ShopEaseCreditCardStrategy <<GoF ConcreteStrategy>> {
+  + algorithmInterface(amount : double)
+}
+
+class ShopEaseDuitNowStrategy <<GoF ConcreteStrategy>> {
+  + algorithmInterface(amount : double)
+}
+
+class ShopEaseMAEStrategy <<GoF ConcreteStrategy>> {
+  + algorithmInterface(amount : double)
+}
+
+class ShopEaseTNGStrategy <<GoF ConcreteStrategy>> {
+  + algorithmInterface(amount : double)
+}
+
+CartDialog ..> ShopEaseCreditCardStrategy : **new**
+CartDialog ..> ShopEaseDuitNowStrategy : **new**
+CartDialog ..> ShopEaseMAEStrategy : **new**
+CartDialog ..> ShopEaseTNGStrategy : **new**
+CartDialog --> ShopEaseService : checkout(strategy)
+ShopEaseService ..> ShopEasePaymentContext : **new** + contextInterface()
+ShopEasePaymentContext o--> ShopEasePaymentStrategy : strategy
+ShopEaseCreditCardStrategy ..|> ShopEasePaymentStrategy
+ShopEaseDuitNowStrategy ..|> ShopEasePaymentStrategy
+ShopEaseMAEStrategy ..|> ShopEasePaymentStrategy
+ShopEaseTNGStrategy ..|> ShopEasePaymentStrategy
+
+note right of CartDialog
+  Client selects ConcreteStrategy
+  directly (switch on payment name).
+  No Factory class.
+end note
+
+note right of ShopEasePaymentContext::contextInterface
+  <b>contextInterface()</b>
+  strategy.algorithmInterface(amount)
+end note
+
+@enduml

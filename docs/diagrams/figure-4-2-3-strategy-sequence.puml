@@ -1,0 +1,29 @@
+@startuml figure-4-2-3-strategy-sequence
+skinparam shadowing false
+
+title ShopEase Payment Strategy — checkout sequence (pure GoF)
+
+actor Customer
+participant "CartDialog\n(GoF Client)" as CD
+participant "ConcreteStrategy\n(e.g. ShopEaseDuitNowStrategy)" as CS
+participant "ShopEaseService" as SVC
+participant "ShopEasePaymentContext\n(GoF Context)" as CTX
+participant "ShopEasePaymentStrategy\n(GoF Strategy)" as STR
+
+Customer -> CD : select payment + Pay
+CD -> CD : paymentStrategyFor(name)
+CD -> CS : **new** ConcreteStrategy()
+CD -> SVC : checkout(strategy)
+activate SVC
+SVC -> CTX : **new** ShopEasePaymentContext(strategy)
+SVC -> CTX : contextInterface(total)
+activate CTX
+CTX -> STR : algorithmInterface(total)
+activate STR
+STR -> CS : payment logic
+deactivate STR
+deactivate CTX
+SVC --> CD : order saved
+deactivate SVC
+
+@enduml

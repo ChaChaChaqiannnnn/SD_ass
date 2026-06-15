@@ -1,0 +1,40 @@
+@startuml figure-4-2-1-strategy-gof
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam classFontSize 11
+hide empty members
+
+title GoF Strategy Pattern\n(Gamma et al. — Design Patterns)
+
+class Context {
+  - strategy : Strategy
+  + ContextInterface()
+}
+
+interface Strategy <<interface>> {
+  + AlgorithmInterface()
+}
+
+class ConcreteStrategyA {
+  + AlgorithmInterface()
+}
+
+class ConcreteStrategyB {
+  + AlgorithmInterface()
+}
+
+class ConcreteStrategyC {
+  + AlgorithmInterface()
+}
+
+Context o--> Strategy : strategy
+ConcreteStrategyA ..|> Strategy
+ConcreteStrategyB ..|> Strategy
+ConcreteStrategyC ..|> Strategy
+
+note right of Context::ContextInterface
+  <b>ContextInterface()</b>
+  strategy.AlgorithmInterface()
+end note
+
+@enduml

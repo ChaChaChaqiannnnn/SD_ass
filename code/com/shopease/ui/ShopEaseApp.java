@@ -3,7 +3,7 @@ package com.shopease.ui;
 import com.shopease.model.Admin;
 import com.shopease.observer.ShopEaseAdminLoginStockAlertObserver;
 import com.shopease.observer.ShopEaseCustomerCartReminderObserver;
-import com.shopease.observer.ShopEaseInventoryObserver;
+import com.shopease.observer.Observer;
 import com.shopease.observer.ShopEaseCustomerWishlistRestockObserver;
 import com.shopease.service.ShopEaseService;
 
@@ -80,7 +80,7 @@ public class ShopEaseApp extends JFrame {
         if (service.getCurrentUser() instanceof Admin) {
             setTitle("ShopEase — Admin");
             // Observer — popup summarising all low/out-of-stock products when admin signs in
-            ShopEaseInventoryObserver adminLoginStockObserver = new ShopEaseAdminLoginStockAlertObserver(this);
+            Observer adminLoginStockObserver = new ShopEaseAdminLoginStockAlertObserver(this);
             service.attachObserver(adminLoginStockObserver);
             service.publishAdminLowStockOnLogin();
             setContentPane(new AdminDashboard(service, () -> {
@@ -90,8 +90,8 @@ public class ShopEaseApp extends JFrame {
         } else {
             setTitle("ShopEase — Shop");
             // Observers — cart reminder + wishlist restock popups for customers on login
-            ShopEaseInventoryObserver cartReminderObserver = new ShopEaseCustomerCartReminderObserver(this);
-            ShopEaseInventoryObserver wishlistRestockObserver = new ShopEaseCustomerWishlistRestockObserver(this);
+            Observer cartReminderObserver = new ShopEaseCustomerCartReminderObserver(this);
+            Observer wishlistRestockObserver = new ShopEaseCustomerWishlistRestockObserver(this);
             service.attachObserver(cartReminderObserver);
             service.attachObserver(wishlistRestockObserver);
             service.publishWishlistRestockOnLogin();

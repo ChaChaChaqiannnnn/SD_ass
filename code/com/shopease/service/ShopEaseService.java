@@ -146,13 +146,13 @@ public class ShopEaseService {
     }
 
     /** UI screens call this to register extra observers (popups, live refresh, login reminders). */
-    public void attachObserver(ShopEaseInventoryObserver observer) {
+    public void attachObserver(Observer observer) {
         if (observer != null) {
             inventorySystem.attach(observer);
         }
     }
 
-    public void detachObserver(ShopEaseInventoryObserver observer) {
+    public void detachObserver(Observer observer) {
         if (observer != null) {
             inventorySystem.detach(observer);
         }
@@ -283,8 +283,8 @@ public class ShopEaseService {
         lastMessage = "";
         ShopEaseInventoryActionStrategy.InventoryActionResult result =
                 new ShopEaseInventoryActionStrategy.InventoryActionResult();
-        ShopEaseInventoryActionStrategy.InventoryActionContext context =
-                new ShopEaseInventoryActionStrategy.InventoryActionContext(
+        ShopEaseInventoryActionStrategy.InventoryActionRequest request =
+                new ShopEaseInventoryActionStrategy.InventoryActionRequest(
                         productDAO,
                         adminActivityDAO,
                         inventorySystem,
@@ -293,7 +293,8 @@ public class ShopEaseService {
                         amount,
                         remarks,
                         lastUndoableStockAction);
-        if (!strategy.execute(context, result)) {
+        ShopEaseInventoryActionContext actionContext = new ShopEaseInventoryActionContext(strategy);
+        if (!actionContext.contextInterface(request, result)) {
             lastMessage = result.message;
             if (result.clearedUndoAction != null) {
                 lastUndoableStockAction = null;
@@ -489,7 +490,7 @@ public class ShopEaseService {
 
         // Strategy — the UI already picked Credit Card / DuitNow / MAE / TNG; we just run it here
         ShopEasePaymentContext context = new ShopEasePaymentContext(strategy);
-        context.executeStrategy(total);
+        context.contextInterface(total);
 
         // Save purchased items before clearing the cart
         List<CartItem> purchasedItems = new ArrayList<>();

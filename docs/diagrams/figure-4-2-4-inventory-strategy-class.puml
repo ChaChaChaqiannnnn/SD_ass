@@ -1,0 +1,65 @@
+@startuml figure-4-2-4-inventory-strategy-class
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam classFontSize 11
+
+title ShopEase Strategy (Inventory) — pure GoF, no Factory
+
+class AdminInventoryPanel <<GoF Client>> {
+  + restock / reduce / undo actions
+}
+
+class ShopEaseService {
+  - restockStrategy : RestockInventoryStrategy
+  - reduceStrategy : ReduceInventoryStrategy
+  - undoStrategy : UndoInventoryStrategy
+  + restockProduct(id, amount)
+  + reduceStockProduct(id, amount, remarks)
+  + undoLastRestock()
+}
+
+class ShopEaseInventoryActionContext <<GoF Context>> {
+  - strategy : ShopEaseInventoryActionStrategy
+  + setStrategy(s : ShopEaseInventoryActionStrategy)
+  + contextInterface(request, result) : boolean
+}
+
+interface ShopEaseInventoryActionStrategy <<GoF Strategy>> {
+  + algorithmInterface(request, result) : boolean
+}
+
+class RestockInventoryStrategy <<GoF ConcreteStrategy>> {
+  + algorithmInterface(request, result) : boolean
+}
+
+class ReduceInventoryStrategy <<GoF ConcreteStrategy>> {
+  + algorithmInterface(request, result) : boolean
+}
+
+class UndoInventoryStrategy <<GoF ConcreteStrategy>> {
+  + algorithmInterface(request, result) : boolean
+}
+
+AdminInventoryPanel --> ShopEaseService : restock / reduce / undo
+ShopEaseService o--> RestockInventoryStrategy : restockStrategy
+ShopEaseService o--> ReduceInventoryStrategy : reduceStrategy
+ShopEaseService o--> UndoInventoryStrategy : undoStrategy
+ShopEaseService ..> ShopEaseInventoryActionContext : **new** + contextInterface()
+ShopEaseInventoryActionContext o--> ShopEaseInventoryActionStrategy : strategy
+RestockInventoryStrategy ..|> ShopEaseInventoryActionStrategy
+ReduceInventoryStrategy ..|> ShopEaseInventoryActionStrategy
+UndoInventoryStrategy ..|> ShopEaseInventoryActionStrategy
+
+note right of ShopEaseService
+  Client picks algorithm by calling
+  restockProduct / reduceStockProduct /
+  undoLastRestock — each uses a
+  different ConcreteStrategy.
+end note
+
+note right of ShopEaseInventoryActionContext::contextInterface
+  <b>contextInterface()</b>
+  strategy.algorithmInterface(request, result)
+end note
+
+@enduml

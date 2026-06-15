@@ -1,7 +1,10 @@
 package com.shopease.observer;
 
-// Observer Pattern — any class that wants to "listen" must implement this one method
+/**
+ * GoF Observer — Observer role.
+ * Concrete observers implement {@link #update()} and pull {@link SubjectState}
+ * from the attached {@link Subject} via {@link Subject#getState()}.
+ */
 public interface Observer {
-    /** event = what happened (e.g. LOW_STOCK), productName = product name or extra detail */
-    void update(String event, String productName);
+    void update();
 }

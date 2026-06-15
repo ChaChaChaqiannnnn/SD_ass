@@ -1,0 +1,52 @@
+@startuml figure-4-1-1-observer-gof
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam classFontSize 11
+hide empty members
+
+title GoF Observer Pattern\n(Gamma et al. — Design Patterns)
+
+class Subject {
+  + Attach(in observer : Observer)
+  + Detach(in observer : Observer)
+  + Notify()
+}
+
+interface Observer <<interface>> {
+  + Update()
+}
+
+class ConcreteSubject {
+  - subjectState
+  + GetState()
+}
+
+class ConcreteObserver {
+  - observerState
+  - subject : ConcreteSubject
+  + Update()
+}
+
+Subject "1" o-- "0..*" Observer : observer
+ConcreteSubject --|> Subject
+ConcreteObserver ..|> Observer
+ConcreteObserver --> ConcreteSubject : subject
+
+note right of Subject::Notify
+  <b>Notify()</b>
+  foreach o in observers {
+    o.Update()
+  }
+end note
+
+note right of ConcreteSubject::GetState
+  <b>GetState()</b>
+  return subjectState
+end note
+
+note right of ConcreteObserver::Update
+  <b>Update()</b>
+  observerState = subject.GetState()
+end note
+
+@enduml

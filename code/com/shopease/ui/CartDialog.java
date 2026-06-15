@@ -2,7 +2,7 @@ package com.shopease.ui;
 
 import com.shopease.model.CartItem;
 import com.shopease.model.Product;
-import com.shopease.observer.ShopEaseInventoryObserver;
+import com.shopease.observer.Observer;
 import com.shopease.observer.ShopEaseDataChangeRefreshObserver;
 import com.shopease.service.ShopEaseService;
 import com.shopease.strategy.*;
@@ -21,6 +21,15 @@ public class CartDialog extends JDialog {
     private static final String DEFAULT_HINT =
             "You can remove items or change quantity — checkout is optional.";
 
+    /** GoF Strategy — client-visible payment labels; each maps to a ConcreteStrategy. */
+    private static final String PAY_CREDIT_CARD = "Credit Card";
+    private static final String PAY_DUIT_NOW = "DuitNow QR";
+    private static final String PAY_MAE = "MAE";
+    private static final String PAY_TNG = "Touch 'n Go";
+    private static final String[] PAYMENT_METHODS = {
+            PAY_CREDIT_CARD, PAY_DUIT_NOW, PAY_MAE, PAY_TNG
+    };
+
     private final ShopEaseService service;
     private final Consumer<String> onCartChanged;
     private final JPanel itemsPanel;
@@ -28,7 +37,7 @@ public class CartDialog extends JDialog {
     private final JLabel hintLabel;
     private final JButton checkoutBtn;
     private final JComboBox<String> paymentCombo;
-    private final ShopEaseInventoryObserver uiRefreshObserver;
+    private final Observer uiRefreshObserver;
 
     public CartDialog(JFrame parent, ShopEaseService service, Consumer<String> onCartChanged) {
         super(parent, "Your Cart", false);
@@ -93,8 +102,8 @@ public class CartDialog extends JDialog {
         payRow.setOpaque(false);
         payRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         payRow.add(new JLabel("Payment:"));
-        // Strategy — dropdown lists all payment methods from ShopEasePaymentStrategySelector
-        paymentCombo = new JComboBox<>(ShopEasePaymentStrategySelector.ALL_METHODS);
+        // GoF Strategy — client picks ConcreteStrategy from dropdown
+        paymentCombo = new JComboBox<>(PAYMENT_METHODS);
         paymentCombo.setFont(ShopEaseUIUtils.bodyFont());
         payRow.add(paymentCombo);
         footer.add(payRow);
@@ -259,10 +268,9 @@ public class CartDialog extends JDialog {
             return;
         }
 
-        // Step 1 (Strategy) — turn the dropdown label into the correct payment strategy object
+        // GoF Strategy — client selects ConcreteStrategy, Context runs it in service.checkout()
         final String paymentName = (String) paymentCombo.getSelectedItem();
-        final ShopEasePaymentStrategy strategy =
-                ShopEasePaymentStrategySelector.create(paymentName);
+        final ShopEasePaymentStrategy strategy = paymentStrategyFor(paymentName);
 
         int confirm = JOptionPane.showConfirmDialog(this,
                 "<html>Place order for <b>RM" + String.format("%.2f", service.getCartTotal())
@@ -320,6 +328,19 @@ public class CartDialog extends JDialog {
                 }
             }
         }.execute();
+    }
+
+    /** GoF Strategy — client chooses which ConcreteStrategy to pass to the Context. */
+    private static ShopEasePaymentStrategy paymentStrategyFor(String paymentName) {
+        if (paymentName == null) {
+            return new ShopEaseCreditCardStrategy();
+        }
+        return switch (paymentName) {
+            case PAY_DUIT_NOW -> new ShopEaseDuitNowStrategy();
+            case PAY_MAE -> new ShopEaseMAEStrategy();
+            case PAY_TNG -> new ShopEaseTNGStrategy();
+            default -> new ShopEaseCreditCardStrategy();
+        };
     }
 
     private void showInlineNotice(String message) {
