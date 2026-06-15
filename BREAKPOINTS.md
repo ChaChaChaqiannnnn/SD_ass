@@ -1,0 +1,145 @@
+# ShopEase — Breakpoint Reference Guide
+
+## Setup
+
+1. Run `./compile.sh` first.
+2. **Run and Debug** (`Cmd+Shift+D`) → choose **ShopEase GUI (Mac/Windows)**.
+3. Open each file below → click the gutter (left of line number) → solid red dot.
+4. Press **F5** to start debug (not `./run-gui.sh`).
+5. Open **Debug Console** for `[Memory]`, `[OBSERVER]`, and payment messages.
+6. Enable **one pattern at a time** — uncheck other breakpoints in the **BREAKPOINTS** panel.
+
+### Key Shortcuts
+| Key | Action |
+|-----|--------|
+| F5  | Continue |
+| F10 | Step Over |
+| F11 | Step Into (use at `PaymentContext` line 22) |
+
+---
+
+## All 11 Breakpoints
+
+### Pattern 1 — Singleton (2 breakpoints)
+
+| # | File | Line | Click on this line | Trigger |
+|---|------|------|--------------------|---------|
+| 1 | `code/com/shopease/singleton/ShopEaseCartSingleton.java` | **29** | `public static synchronized ShopEaseCartSingleton getInstance(String userId)` | Customer login (Sign Up or existing). Login again as same customer after adding item + logout. |
+| 2 | `code/com/shopease/singleton/ShopEaseDatabaseManager.java` | **22** | `public static ShopEaseDatabaseManager getInstance()` | F5 start app — hits immediately on startup (before login). Also hits when browsing products / DB access. |
+
+**Proves:** One cart per user ID; one DB manager for all DAOs.
+
+**Expected console:**
+```
+First login:  [Memory] New Cart instance created for user: ...
+Second login: [Memory] Returning existing cart instance for user: ...
+```
+
+---
+
+### Pattern 2 — Strategy (6 breakpoints)
+
+| # | File | Line | Click on this line | Trigger |
+|---|------|------|--------------------|---------|
+| 3 | `code/com/shopease/ui/CartDialog.java` | **265** | `ShopEasePaymentStrategySelector.create(paymentName);` | Customer → Cart → DuitNow QR → Checkout → Yes |
+| 4 | `code/com/shopease/service/ShopEaseService.java` | **491** | `ShopEasePaymentContext context = new ShopEasePaymentContext(strategy);` | Same checkout (after confirm) |
+| 5 | `code/com/shopease/service/ShopEaseService.java` | **492** | `context.executeStrategy(total);` | F10 from line 491 |
+| 6 | `code/com/shopease/strategy/ShopEasePaymentContext.java` | **22** | `strategy.execute(amount);` | F10 from line 492 → then F11 to step into strategy |
+| 7 | `code/com/shopease/strategy/ShopEaseDuitNowStrategy.java` | **7** | `public void execute(double amount) {` | Lands here after F11 from #6 |
+| 8 *(bonus)* | `code/com/shopease/strategy/ReduceInventoryStrategy.java` | **9** | `public boolean execute(InventoryActionContext ctx, ...)` | Admin login → Inventory → Reduce (amount + remarks required) |
+
+**Proves:** Payment and inventory use interchangeable strategy classes via `ShopEasePaymentContext`.
+
+**Expected console (DuitNow):**
+```
+Processing Payment: RMxx.xx via DuitNow QR.
+```
+
+---
+
+### Pattern 3 — Observer (4 breakpoints)
+
+| # | File | Line | Click on this line | Trigger |
+|---|------|------|--------------------|---------|
+| 11 | `code/com/shopease/service/ShopEaseService.java` | **99** | `inventorySystem.attach(new ShopEaseCartStockSyncObserver(userCart));` | Customer login |
+| 9  | `code/com/shopease/observer/ShopEaseInventorySubject.java` | **46** | `notifyObservers(ShopEaseAppEvents.OUT_OF_STOCK, productName);` | Admin → Inventory → Reduce to 0 (+ remarks) |
+| 10 | `code/com/shopease/observer/ShopEaseInventorySubject.java` | **28** | `for (ShopEaseInventoryObserver o : observers)` | F10 from line 46 |
+| 12 | `code/com/shopease/observer/ShopEaseCartStockSyncObserver.java` | **20** | `public void update(String event, String productName)` | *(See note below)* |
+
+**Proves:** Subject notifies observers on `OUT_OF_STOCK`; cart sync removes invalid items.
+
+**Expected console:**
+```
+[Inventory] Gaming Laptop is now OUT OF STOCK.
+[ADMIN ALERT] ... requires immediate attention!
+[OBSERVER] SYSTEM ALERT: ... + Auto-removed '...' from your cart...
+```
+
+> **⚠️ Important — Breakpoint #12 (cart sync observer)**
+>
+> If you logout customer → admin reduce, breakpoint #12 often will **NOT** hit because the customer's observer is detached on logout. That is OK:
+> - **#9 and #10** still prove Observer (subject + notify loop).
+> - Cart cleanup after re-login is handled by `syncCartWithDatabase()` in `ShopEaseService`.
+> - To hit #12 in the **same session**: customer must still be logged in when `OUT_OF_STOCK` fires (e.g. checkout that depletes stock to 0 while customer is active).
+
+---
+
+## Demo Order
+
+### Part 1 — Singleton
+1. Enable only **#1** → customer login twice (add Wireless Mouse between logins).
+2. Enable only **#2** → F5 restart → pause on startup → F5 to login screen.
+
+### Part 2 — Strategy
+1. Enable **#3, #4, #5, #6, #7** → customer checkout with **DuitNow QR**.
+2. *(Optional)* Enable **#8** → admin reduce stock.
+
+### Part 3 — Observer
+1. Enable **#11** → customer login → F5.
+2. Add **Gaming Laptop** to cart → do **not** checkout.
+3. Enable **#9, #10** (disable #11 if cluttered).
+4. Logout → admin login → reduce that product to **0** with remarks.
+5. F10 through line 46 → line 28.
+6. Logout → same customer login → open Cart → laptop should be gone.
+
+---
+
+## 5-Minute Version (Minimum Breakpoints)
+
+| Pattern  | File | Line | Action |
+|----------|------|------|--------|
+| Singleton | `ShopEaseCartSingleton.java` | 29 | Customer login twice |
+| Strategy  | `ShopEaseService.java` | 491–492 | DuitNow checkout |
+| Strategy  | `ShopEasePaymentContext.java` | 22 | F11 into execute |
+| Strategy  | `ShopEaseDuitNowStrategy.java` | 7 | Concrete strategy lands |
+| Observer  | `ShopEaseInventorySubject.java` | 46 | Admin reduce to 0 |
+
+---
+
+## Troubleshooting
+
+| Check | Fix |
+|-------|-----|
+| Grey dot (unverified breakpoint) | Run `./compile.sh` then Shift+F5 → F5 again |
+| No pause | Must use **F5 Debug**, not Terminal run |
+| Wrong role | Cart = customer; reduce = admin |
+| Reduce fails | Remarks field is mandatory |
+| Too many breakpoints | Enable only one pattern's breakpoints at a time |
+
+---
+
+## Quick Reference — File Paths
+
+```
+code/com/shopease/singleton/ShopEaseCartSingleton.java
+code/com/shopease/singleton/ShopEaseDatabaseManager.java
+code/com/shopease/ui/CartDialog.java
+code/com/shopease/service/ShopEaseService.java
+code/com/shopease/strategy/ShopEasePaymentContext.java
+code/com/shopease/strategy/ShopEaseDuitNowStrategy.java
+code/com/shopease/strategy/ReduceInventoryStrategy.java
+code/com/shopease/observer/ShopEaseInventorySubject.java
+code/com/shopease/observer/ShopEaseCartStockSyncObserver.java
+```
+
+> **Optional cheat sheet during demo:** `code/com/shopease/DesignPatterns.java` — lists all pattern class names for Q&A.
