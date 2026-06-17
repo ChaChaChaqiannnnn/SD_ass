@@ -1,9 +1,8 @@
 package com.shopease.strategy;
 
 /**
- * Strategy Pattern — common interface for all payment methods.
- * Each method (Credit Card, DuitNow, MAE, TNG) implements execute() differently.
+ * GoF Strategy — Strategy role (payment algorithms).
  */
 public interface ShopEasePaymentStrategy {
-    void execute(double amount);
+    void algorithmInterface(double amount);
 }

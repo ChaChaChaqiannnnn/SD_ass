@@ -6,21 +6,21 @@ import com.shopease.model.Product;
 import com.shopease.model.User;
 
 /**
- * Strategy Pattern — adds stock for a product (Restock selected / Quick +10).
+ * GoF Strategy — ConcreteStrategy (restock inventory).
  */
 public class RestockInventoryStrategy implements ShopEaseInventoryActionStrategy {
 
     @Override
-    public boolean execute(InventoryActionContext ctx, InventoryActionResult result) {
-        return adjustStock(ctx, result, ctx.amount, "RESTOCK", "");
+    public boolean algorithmInterface(InventoryActionRequest request, InventoryActionResult result) {
+        return adjustStock(request, result, request.amount, "RESTOCK", "");
     }
 
-    static boolean adjustStock(InventoryActionContext ctx,
+    static boolean adjustStock(InventoryActionRequest request,
                                InventoryActionResult result,
                                int quantityChange,
                                String actionType,
                                String remarks) {
-        if (!(ctx.currentUser instanceof Admin)) {
+        if (!(request.currentUser instanceof Admin)) {
             result.message = "Only admins can change stock.";
             return false;
         }
@@ -28,7 +28,7 @@ public class RestockInventoryStrategy implements ShopEaseInventoryActionStrategy
             result.message = "Change amount cannot be zero.";
             return false;
         }
-        Product product = ctx.productDAO.getProductById(ctx.productId);
+        Product product = request.productDAO.getProductById(request.productId);
         if (product == null) {
             result.message = "Product not found.";
             return false;
@@ -41,13 +41,13 @@ public class RestockInventoryStrategy implements ShopEaseInventoryActionStrategy
             return false;
         }
 
-        ctx.productDAO.updateStock(ctx.productId, stockAfter);
-        ctx.inventorySubject.setStock(stockAfter, product.getName());
+        request.productDAO.updateStock(request.productId, stockAfter);
+        request.inventorySubject.setStock(stockAfter, product.getName());
 
         AdminInventoryLog log = new AdminInventoryLog(
-                ctx.currentUser.getUserId(),
-                ctx.currentUser.getName(),
-                ctx.productId,
+                request.currentUser.getUserId(),
+                request.currentUser.getName(),
+                request.productId,
                 product.getName(),
                 actionType,
                 stockAfter - stockBefore,
@@ -56,7 +56,7 @@ public class RestockInventoryStrategy implements ShopEaseInventoryActionStrategy
                 remarks,
                 new java.util.Date()
         );
-        ctx.adminActivityDAO.insertLog(log);
+        request.adminActivityDAO.insertLog(log);
         result.newLog = log;
 
         if ("REDUCE".equals(actionType)) {

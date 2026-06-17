@@ -5,11 +5,9 @@ import javax.swing.SwingUtilities;
 import java.awt.Component;
 
 /**
- * Observer — InventoryAdminAlertObserver
- * Shows a JOptionPane popup on the admin screen whenever stock hits LOW or OUT.
- * Attached in AdminDashboard when admin opens the panel.
+ * GoF Observer — ConcreteObserver (admin GUI stock alert popup).
  */
-public class ShopEaseInventoryAdminAlertObserver implements ShopEaseInventoryObserver {
+public class ShopEaseInventoryAdminAlertObserver extends ShopEaseAbstractObserver {
     private final Component parent;
 
     public ShopEaseInventoryAdminAlertObserver(Component parent) {
@@ -17,7 +15,9 @@ public class ShopEaseInventoryAdminAlertObserver implements ShopEaseInventoryObs
     }
 
     @Override
-    public void update(String event, String productName) {
+    protected void onStateChanged(SubjectState state) {
+        String event = state.getEvent();
+        String productName = state.getProductName();
         if (!ShopEaseAppEvents.LOW_STOCK.equals(event) && !ShopEaseAppEvents.OUT_OF_STOCK.equals(event)) {
             return;
         }

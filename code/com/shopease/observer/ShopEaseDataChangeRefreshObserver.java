@@ -3,11 +3,9 @@ package com.shopease.observer;
 import javax.swing.SwingUtilities;
 
 /**
- * Observer — DataChangeRefreshObserver
- * Keeps screens in sync: when data changes (cart, stock, wishlist), re-runs a refresh method.
- * Used by CustomerDashboard, AdminDashboard, and CartDialog.
+ * GoF Observer — ConcreteObserver (UI refresh on DATA_CHANGED).
  */
-public class ShopEaseDataChangeRefreshObserver implements ShopEaseInventoryObserver {
+public class ShopEaseDataChangeRefreshObserver extends ShopEaseAbstractObserver {
     private final Runnable onRefresh;
 
     public ShopEaseDataChangeRefreshObserver(Runnable onRefresh) {
@@ -15,8 +13,8 @@ public class ShopEaseDataChangeRefreshObserver implements ShopEaseInventoryObser
     }
 
     @Override
-    public void update(String event, String productName) {
-        if (ShopEaseAppEvents.DATA_CHANGED.equals(event)) {
+    protected void onStateChanged(SubjectState state) {
+        if (ShopEaseAppEvents.DATA_CHANGED.equals(state.getEvent())) {
             SwingUtilities.invokeLater(onRefresh);
         }
     }

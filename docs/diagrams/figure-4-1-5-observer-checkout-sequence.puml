@@ -1,0 +1,27 @@
+@startuml figure-4-1-5-observer-checkout-sequence
+skinparam shadowing false
+
+title ShopEase Observer — checkout stock alert sequence
+
+participant "ShopEaseService" as SVC
+participant "ShopEaseInventorySubject\n(GoF ConcreteSubject)" as SUB
+participant "ShopEaseCartStockSyncObserver\n(GoF ConcreteObserver)" as CO
+participant "ShopEaseDataChangeRefreshObserver\n(GoF ConcreteObserver)" as UI
+
+SVC -> SVC : checkout completes
+SVC -> SVC : updateProductStock()
+SVC -> SUB : setStock(newQty, productName)
+activate SUB
+SUB -> SUB : subjectState = OUT_OF_STOCK
+SUB -> SUB : notifyObservers()
+SUB -> CO : update()
+CO -> SUB : getState()
+SUB --> CO : SubjectState
+CO -> CO : remove item from cart
+SUB -> UI : update()
+UI -> SUB : getState()
+SUB --> UI : DATA_CHANGED (via notifyDataChanged)
+UI -> UI : refresh open screens
+deactivate SUB
+
+@enduml

@@ -2,5 +2,8 @@
     "java.project.sourcePaths": ["code"],
     "java.project.outputPath": "bin",
     "java.project.referencedLibraries": ["lib/**/*.jar"],
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.autobuild.enabled": false,
+    "java.debug.settings.forceBuildBeforeLaunch": false,
+    "java.debug.settings.onBuildFailureProceed": false
 }

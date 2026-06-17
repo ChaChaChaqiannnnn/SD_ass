@@ -1,0 +1,24 @@
+@startuml figure-4-3-4-singleton-database-sequence
+skinparam shadowing false
+
+title ShopEase Singleton — database access sequence
+
+participant "DatabaseConnection" as DC
+participant "ShopEaseDatabaseManager\n(GoF Singleton)" as DB
+participant "ProductDAO / UserDAO / ..." as DAO
+
+DAO -> DC : getConnection()
+DC -> DB : getInstance()
+activate DB
+DB --> DC : instance
+deactivate DB
+DC -> DB : getConnection()
+DB --> DC : Connection
+DC --> DAO : Connection
+
+note over DB
+  One <b>instance</b> for the whole app.
+  All DAOs share the same manager.
+end note
+
+@enduml

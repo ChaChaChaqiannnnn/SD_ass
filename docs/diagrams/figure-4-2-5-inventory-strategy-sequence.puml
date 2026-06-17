@@ -1,0 +1,28 @@
+@startuml figure-4-2-5-inventory-strategy-sequence
+skinparam shadowing false
+
+title ShopEase Inventory Strategy — restock sequence (pure GoF)
+
+actor Admin
+participant "AdminInventoryPanel\n(GoF Client)" as UI
+participant "ShopEaseService" as SVC
+participant "RestockInventoryStrategy\n(GoF ConcreteStrategy)" as CS
+participant "ShopEaseInventoryActionContext\n(GoF Context)" as CTX
+participant "ShopEaseInventoryActionStrategy\n(GoF Strategy)" as STR
+
+Admin -> UI : Restock product
+UI -> SVC : restockProduct(productId, amount)
+activate SVC
+SVC -> CS : use restockStrategy
+SVC -> CTX : **new** ShopEaseInventoryActionContext(restockStrategy)
+SVC -> CTX : contextInterface(request, result)
+activate CTX
+CTX -> STR : algorithmInterface(request, result)
+activate STR
+STR -> CS : update stock + notify observers
+deactivate STR
+deactivate CTX
+SVC --> UI : success message
+deactivate SVC
+
+@enduml

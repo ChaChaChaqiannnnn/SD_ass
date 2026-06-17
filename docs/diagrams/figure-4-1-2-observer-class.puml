@@ -1,0 +1,67 @@
+@startuml figure-4-1-2-observer-class
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam classFontSize 11
+
+title ShopEase Observer — mapped to GoF roles
+
+class Subject <<GoF Subject>> {
+  + attach(o : Observer)
+  + detach(o : Observer)
+  # notifyObservers()
+  {abstract} + getState() : SubjectState
+}
+
+interface Observer <<GoF Observer>> {
+  + update()
+}
+
+class SubjectState {
+  - event : String
+  - productName : String
+  - stockQuantity : int
+  + getEvent() : String
+  + getProductName() : String
+  + getStockQuantity() : int
+}
+
+class ShopEaseInventorySubject <<GoF ConcreteSubject>> {
+  - subjectState : SubjectState
+  + getState() : SubjectState
+  + publishEvent(event, detail)
+  + setStock(qty, productName)
+}
+
+abstract class ShopEaseAbstractObserver <<GoF ConcreteObserver>> {
+  # subject : Subject
+  + update()
+  # onStateChanged(state : SubjectState)
+}
+
+class ShopEaseInventoryAdminLogObserver
+class ShopEaseInventoryAdminAlertObserver
+class ShopEaseAdminLoginStockAlertObserver
+class ShopEaseCustomerCartReminderObserver
+class ShopEaseCustomerWishlistRestockObserver
+class ShopEaseCartStockSyncObserver
+class ShopEaseDataChangeRefreshObserver
+
+Subject "1" o-- "0..*" Observer : observers
+ShopEaseInventorySubject --|> Subject
+ShopEaseInventorySubject *-- SubjectState : subjectState
+ShopEaseAbstractObserver ..|> Observer
+ShopEaseAbstractObserver --> ShopEaseInventorySubject : subject
+ShopEaseInventoryAdminLogObserver --|> ShopEaseAbstractObserver
+ShopEaseInventoryAdminAlertObserver --|> ShopEaseAbstractObserver
+ShopEaseAdminLoginStockAlertObserver --|> ShopEaseAbstractObserver
+ShopEaseCustomerCartReminderObserver --|> ShopEaseAbstractObserver
+ShopEaseCustomerWishlistRestockObserver --|> ShopEaseAbstractObserver
+ShopEaseCartStockSyncObserver --|> ShopEaseAbstractObserver
+ShopEaseDataChangeRefreshObserver --|> ShopEaseAbstractObserver
+
+note right of ShopEaseAbstractObserver::update
+  <b>update()</b>
+  onStateChanged(subject.getState())
+end note
+
+@enduml

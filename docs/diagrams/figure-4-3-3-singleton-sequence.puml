@@ -1,0 +1,22 @@
+@startuml figure-4-3-3-singleton-sequence
+skinparam shadowing false
+
+title GoF Singleton — sequence (Instance / getInstance)
+
+actor Client
+participant "Singleton\n(ShopEaseDatabaseManager)" as S
+
+Client -> S : Instance() / getInstance()
+activate S
+alt instance is null (lazy) or already created (eager)
+  S --> S : return instance
+end
+S --> Client : the one Singleton instance
+deactivate S
+
+note over Client, S
+  Every call returns the SAME object.
+  Private constructor prevents new Singleton().
+end note
+
+@enduml

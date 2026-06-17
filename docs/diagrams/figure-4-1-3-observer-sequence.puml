@@ -1,0 +1,24 @@
+@startuml figure-4-1-3-observer-sequence
+skinparam shadowing false
+
+title GoF Observer — sequence (Notify / Update / GetState)
+
+actor Client
+participant "ConcreteSubject\n(ShopEaseInventorySubject)" as CS
+participant "ConcreteObserver\n(ShopEaseAbstractObserver)" as CO
+
+Client -> CS : setStock() / publishEvent()
+activate CS
+CS -> CS : subjectState = new state
+CS -> CS : Notify() / notifyObservers()
+loop foreach attached observer
+  CS -> CO : Update() / update()
+  activate CO
+  CO -> CS : GetState() / getState()
+  CS --> CO : SubjectState
+  CO -> CO : observerState = state\nonStateChanged(state)
+  deactivate CO
+end
+deactivate CS
+
+@enduml

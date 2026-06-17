@@ -2,7 +2,7 @@ package com.shopease.ui;
 
 import com.shopease.model.CartItem;
 import com.shopease.model.Order;
-import com.shopease.observer.ShopEaseInventoryObserver;
+import com.shopease.observer.Observer;
 import com.shopease.observer.ShopEaseDataChangeRefreshObserver;
 import com.shopease.service.ShopEaseService;
 
@@ -25,7 +25,7 @@ public class OrderHistoryDialog extends JDialog {
     private final ShopEaseService service;
     private final JPanel ordersPanel;
     private final JLabel countLabel;
-    private final ShopEaseInventoryObserver uiRefreshObserver;
+    private final Observer uiRefreshObserver;
 
     public OrderHistoryDialog(JFrame parent, ShopEaseService service) {
         super(parent, "Order History", true);

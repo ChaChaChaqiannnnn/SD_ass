@@ -11,7 +11,8 @@ import java.sql.Statement;
  * {@link #initializeDatabase()}.
  */
 public final class ShopEaseDatabaseManager {
-    private static final ShopEaseDatabaseManager INSTANCE = new ShopEaseDatabaseManager();
+    /** GoF Singleton — single global instance. */
+    private static final ShopEaseDatabaseManager instance = new ShopEaseDatabaseManager();
 
     private static final String DB_PATH =
             System.getProperty("user.dir") + java.io.File.separator + "shopease.db";
@@ -19,8 +20,9 @@ public final class ShopEaseDatabaseManager {
 
     private ShopEaseDatabaseManager() {}
 
+    /** GoF — global access point {@code Instance()}. */
     public static ShopEaseDatabaseManager getInstance() {
-        return INSTANCE;
+        return instance;
     }
 
     public Connection getConnection() throws SQLException {

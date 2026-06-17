@@ -1,7 +1,7 @@
 package com.shopease.ui;
 
 import com.shopease.observer.ShopEaseInventoryAdminAlertObserver;
-import com.shopease.observer.ShopEaseInventoryObserver;
+import com.shopease.observer.Observer;
 import com.shopease.observer.ShopEaseDataChangeRefreshObserver;
 import com.shopease.service.ShopEaseService;
 
@@ -26,8 +26,8 @@ public class AdminDashboard extends JPanel {
     private final JPanel contentPanel;
     private final AdminInventoryPanel inventoryPanel;
     private final AdminUsersPanel usersPanel;
-    private final ShopEaseInventoryObserver uiRefreshObserver;
-    private final ShopEaseInventoryObserver adminAlertObserver;
+    private final Observer uiRefreshObserver;
+    private final Observer adminAlertObserver;
     private JButton inventoryNavBtn;
     private JButton usersNavBtn;
 

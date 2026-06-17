@@ -5,10 +5,9 @@ import javax.swing.SwingUtilities;
 import java.awt.Component;
 
 /**
- * Observer — CustomerWishlistRestockObserver
- * Tells the customer when something on their wishlist was out of stock but is available again.
+ * GoF Observer — ConcreteObserver (customer wishlist restock popup).
  */
-public class ShopEaseCustomerWishlistRestockObserver implements ShopEaseInventoryObserver {
+public class ShopEaseCustomerWishlistRestockObserver extends ShopEaseAbstractObserver {
     private final Component parent;
 
     public ShopEaseCustomerWishlistRestockObserver(Component parent) {
@@ -16,13 +15,14 @@ public class ShopEaseCustomerWishlistRestockObserver implements ShopEaseInventor
     }
 
     @Override
-    public void update(String event, String productName) {
-        if (!ShopEaseAppEvents.WISHLIST_RESTOCK.equals(event)) {
+    protected void onStateChanged(SubjectState state) {
+        if (!ShopEaseAppEvents.WISHLIST_RESTOCK.equals(state.getEvent())) {
             return;
         }
+        String detail = state.getProductName();
         SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
                 "<html><body style='width:300px'>Good news — these wishlist items are back in stock:<br><br>"
-                        + productName.replace("\n", "<br>") + "</body></html>",
+                        + detail.replace("\n", "<br>") + "</body></html>",
                 "Wishlist restocked",
                 JOptionPane.INFORMATION_MESSAGE));
     }

@@ -1,0 +1,19 @@
+@startuml figure-4-3-1-singleton-gof
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam classFontSize 11
+
+title GoF Singleton Pattern\n(Gamma et al. — Design Patterns)
+
+class Singleton {
+  {static} - instance : Singleton
+  - Singleton()
+  {static} + Instance() : Singleton
+}
+
+note bottom of Singleton
+  Ensure a class has only one instance
+  and provide a global point of access to it.
+end note
+
+@enduml

@@ -1,7 +1,7 @@
 package com.shopease.ui;
 
 import com.shopease.model.Product;
-import com.shopease.observer.ShopEaseInventoryObserver;
+import com.shopease.observer.Observer;
 import com.shopease.observer.ShopEaseDataChangeRefreshObserver;
 import com.shopease.service.ShopEaseService;
 
@@ -28,7 +28,7 @@ public class CustomerDashboard extends JPanel {
     private JLabel titleLabel;
     private JButton cartBtn;
     private String lastSearchFilter = "";
-    private final ShopEaseInventoryObserver uiRefreshObserver;
+    private final Observer uiRefreshObserver;
 
     public CustomerDashboard(ShopEaseService service, Runnable onLogout) {
         this.service = service;

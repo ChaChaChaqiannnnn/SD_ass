@@ -5,23 +5,23 @@ import com.shopease.model.AdminInventoryLog;
 import com.shopease.model.Product;
 
 /**
- * Strategy Pattern — reverts the last admin stock change for the current session.
+ * GoF Strategy — ConcreteStrategy (undo last inventory change).
  */
 public class UndoInventoryStrategy implements ShopEaseInventoryActionStrategy {
 
     @Override
-    public boolean execute(InventoryActionContext ctx, InventoryActionResult result) {
-        if (!(ctx.currentUser instanceof Admin)) {
+    public boolean algorithmInterface(InventoryActionRequest request, InventoryActionResult result) {
+        if (!(request.currentUser instanceof Admin)) {
             result.message = "Nothing to undo.";
             return false;
         }
-        if (ctx.lastUndoableAction == null) {
+        if (request.lastUndoableAction == null) {
             result.message = "Nothing to undo.";
             return false;
         }
 
-        AdminInventoryLog previous = ctx.lastUndoableAction;
-        Product product = ctx.productDAO.getProductById(previous.getProductId());
+        AdminInventoryLog previous = request.lastUndoableAction;
+        Product product = request.productDAO.getProductById(previous.getProductId());
         if (product == null) {
             result.message = "Product no longer exists.";
             result.clearedUndoAction = previous;
@@ -30,12 +30,12 @@ public class UndoInventoryStrategy implements ShopEaseInventoryActionStrategy {
 
         int currentStock = product.getStockQuantity();
         int restoredStock = previous.getStockBefore();
-        ctx.productDAO.updateStock(previous.getProductId(), restoredStock);
-        ctx.inventorySubject.setStock(restoredStock, previous.getProductName());
+        request.productDAO.updateStock(previous.getProductId(), restoredStock);
+        request.inventorySubject.setStock(restoredStock, previous.getProductName());
 
         AdminInventoryLog undoLog = new AdminInventoryLog(
-                ctx.currentUser.getUserId(),
-                ctx.currentUser.getName(),
+                request.currentUser.getUserId(),
+                request.currentUser.getName(),
                 previous.getProductId(),
                 previous.getProductName(),
                 "UNDO",
@@ -46,7 +46,7 @@ public class UndoInventoryStrategy implements ShopEaseInventoryActionStrategy {
                         + (previous.getRemarks().isEmpty() ? "" : ": " + previous.getRemarks()),
                 new java.util.Date()
         );
-        ctx.adminActivityDAO.insertLog(undoLog);
+        request.adminActivityDAO.insertLog(undoLog);
         result.clearedUndoAction = previous;
         result.message = "Undid " + previous.getActionType().toLowerCase() + " on "
                 + previous.getProductName() + " (back to " + restoredStock + ").";

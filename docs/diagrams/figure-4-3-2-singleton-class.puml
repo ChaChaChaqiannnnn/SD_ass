@@ -1,0 +1,23 @@
+@startuml figure-4-3-2-singleton-class
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam classFontSize 11
+
+title ShopEase Singleton — mapped to GoF roles
+
+class ShopEaseDatabaseManager <<GoF Singleton>> {
+  {static} - instance : ShopEaseDatabaseManager
+  - ShopEaseDatabaseManager()
+  {static} + getInstance() : ShopEaseDatabaseManager
+  + getConnection() : Connection
+  + initializeDatabase()
+}
+
+note bottom of ShopEaseDatabaseManager
+  GoF mapping:
+  <b>instance</b> = single static field
+  <b>private constructor</b> = - ShopEaseDatabaseManager()
+  <b>Instance()</b> in GoF book = getInstance() in Java
+end note
+
+@enduml

@@ -10,7 +10,8 @@
                 "${workspaceFolder}/bin",
                 "${workspaceFolder}/lib/sqlite-jdbc.jar"
             ],
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "compile-shopease"
         }
     ]
 }
