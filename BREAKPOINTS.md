@@ -25,14 +25,19 @@
 | # | File | Line | Click on this line | Trigger |
 |---|------|------|--------------------|---------|
 | 1 | `code/com/shopease/singleton/ShopEaseCartSingleton.java` | **24** | `public static synchronized ShopEaseCartSingleton getInstance(String userId) {` | Customer login (Sign Up or existing). Login again as same customer after adding item + logout. |
-| 2 | `code/com/shopease/singleton/ShopEaseDatabaseManager.java` | **24** | `public static ShopEaseDatabaseManager getInstance() {` | F5 start app — hits immediately on startup (before login). Also hits when browsing products / DB access. |
+| 2 | `code/com/shopease/singleton/ShopEaseDatabaseManager.java` | **24** | `public static synchronized ShopEaseDatabaseManager getInstance() {` | F5 start app — hits immediately on startup (before login). Also hits on every DB access (browsing products, login, checkout, admin actions, ...). |
 
-**Proves:** One cart per user ID; one DB manager for all DAOs.
+**Proves:** One cart per user ID; one DB manager for the entire app — both now use the same
+create-or-reuse `if/else` shape, so you can step through line 24 with F10 and show your
+teacher the exact branch: first call builds it, every call after just returns the same object.
 
 **Expected console:**
 ```
-First login:  [Memory] New Cart instance created for user: ...
-Second login: [Memory] Returning existing cart instance for user: ...
+First login:        [Memory] New Cart instance created for user: ...
+Second login:        [Memory] Returning existing cart instance for user: ...
+
+First DB call ever:  [Memory] New ShopEaseDatabaseManager instance created.
+Every DB call after: [Memory] Returning existing ShopEaseDatabaseManager instance.
 ```
 
 ---

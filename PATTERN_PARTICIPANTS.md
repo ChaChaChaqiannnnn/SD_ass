@@ -28,11 +28,25 @@ this role:
 
 - **Private constructor** (`private ShopEaseDatabaseManager() {}`) — blocks `new` from
   outside the class. This is what makes "uncontrolled instantiation" impossible.
-- **Static field holds the one instance**: `private static final ShopEaseDatabaseManager instance = new ShopEaseDatabaseManager();`
-  — created eagerly, once, when the class is first loaded by the JVM.
-- **Global access point**: `public static ShopEaseDatabaseManager getInstance()` simply
-  returns that field. No branching, no lazy creation — because it's eager, every caller
-  always gets the same object.
+- **Static field holds the one instance, created lazily**: `private static ShopEaseDatabaseManager instance;`
+  starts out `null` — nothing is built until the first request.
+- **Global access point with a visible create-or-reuse check**:
+  ```java
+  public static synchronized ShopEaseDatabaseManager getInstance() {
+      if (instance == null) {
+          instance = new ShopEaseDatabaseManager();
+          System.out.println("[Memory] New ShopEaseDatabaseManager instance created.");
+      } else {
+          System.out.println("[Memory] Returning existing ShopEaseDatabaseManager instance.");
+      }
+      return instance;
+  }
+  ```
+  Same shape as `ShopEaseCartSingleton.getInstance` — first caller builds it (and prints so),
+  every caller after that just gets the same reference back (and prints that too). `synchronized`
+  matters more here than on the cart: `getConnection()` is called from background `SwingWorker`
+  threads (checkout, admin actions) as well as the EDT, so two threads racing to build the first
+  instance has to be prevented explicitly — `synchronized` makes that impossible.
 - **Why a Singleton here**: every DAO (`UserDAO`, `ProductDAO`, `OrderDAO`, ...) needs a
   SQLite `Connection`. If each DAO opened its own, you'd risk conflicting schema
   initialization and duplicate `PRAGMA` settings. One manager = one source of truth for

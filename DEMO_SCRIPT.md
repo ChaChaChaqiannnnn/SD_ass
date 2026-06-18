@@ -58,8 +58,35 @@ Each breakpoint below has three parts:
 > for existing users before it can show the login screen — and this method is the single
 > gateway every part of the app goes through to get one."
 
+**DO:** Press **F10** (step over) once.
+
+**EXPECT:** Lands inside the `if (instance == null)` branch (line 26-27). Console shows:
+```
+[Memory] New ShopEaseDatabaseManager instance created.
+```
+
+**SAY:**
+> "This is the very first database call in the whole program, so `instance` is still null —
+> it builds the one-and-only manager right here. Watch what happens the *next* time this
+> line runs."
+
+**DO:** Press **F5**. It pauses again at line 24 almost immediately (another DB call during
+startup). Press **F10** once more.
+
+**EXPECT:** This time it lands in the `else` branch (line 29). Console shows:
+```
+[Memory] Returning existing ShopEaseDatabaseManager instance.
+```
+
+**SAY:**
+> "Same line 24, same method — but this time `instance` was already set, so it skips
+> straight to returning the existing one instead of building a second. That's the exact
+> same create-or-reuse shape as the cart singleton, just for the database connection
+> manager instead of a per-user cart."
+
 **DO:** Press **F5** repeatedly until the login screen actually appears (this method gets
-hit a few more times during startup — that's expected, just keep going).
+hit a few more times during startup — every one of them should land in the `else` branch
+now — that's expected, just keep going).
 
 ### Breakpoint #1 — `ShopEaseCartSingleton.getInstance(userId)`
 

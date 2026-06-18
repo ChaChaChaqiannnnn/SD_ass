@@ -11,8 +11,8 @@ import java.sql.Statement;
  * {@link #initializeDatabase()}.
  */
 public final class ShopEaseDatabaseManager {
-    /** GoF Singleton — single global instance. */
-    private static final ShopEaseDatabaseManager instance = new ShopEaseDatabaseManager();
+    /** GoF Singleton — single global instance, created lazily on first request. */
+    private static ShopEaseDatabaseManager instance;
 
     private static final String DB_PATH =
             System.getProperty("user.dir") + java.io.File.separator + "shopease.db";
@@ -20,8 +20,14 @@ public final class ShopEaseDatabaseManager {
 
     private ShopEaseDatabaseManager() {}
 
-    /** GoF — global access point {@code Instance()}. */
-    public static ShopEaseDatabaseManager getInstance() {
+    /** GoF — global access point {@code Instance()}. Same create-or-reuse check as ShopEaseCartSingleton. */
+    public static synchronized ShopEaseDatabaseManager getInstance() {
+        if (instance == null) {
+            instance = new ShopEaseDatabaseManager();
+            System.out.println("[Memory] New ShopEaseDatabaseManager instance created.");
+        } else {
+            System.out.println("[Memory] Returning existing ShopEaseDatabaseManager instance.");
+        }
         return instance;
     }
 
