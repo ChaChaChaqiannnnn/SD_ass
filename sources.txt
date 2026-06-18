@@ -15,6 +15,7 @@ C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\model\Product.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\model\User.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\Observer.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\package-info.java
+C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\ShopEaseAbstractObserver.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\ShopEaseAdminLoginStockAlertObserver.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\ShopEaseAppEvents.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\ShopEaseCartStockSyncObserver.java
@@ -23,9 +24,9 @@ C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\ShopEaseCustome
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\ShopEaseDataChangeRefreshObserver.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\ShopEaseInventoryAdminAlertObserver.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\ShopEaseInventoryAdminLogObserver.java
-C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\ShopEaseInventoryObserver.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\ShopEaseInventorySubject.java
-C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\ShopEaseSubject.java
+C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\Subject.java
+C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\observer\SubjectState.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\service\ShopEaseService.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\singleton\package-info.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\singleton\ShopEaseCartSingleton.java
@@ -43,12 +44,12 @@ C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEaseAdminUs
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEaseCreateCustomerStrategy.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEaseCreditCardStrategy.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEaseDuitNowStrategy.java
+C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEaseInventoryActionContext.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEaseInventoryActionStrategy.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEaseLoginValidationStrategy.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEaseMAEStrategy.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEasePaymentContext.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEasePaymentStrategy.java
-C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEasePaymentStrategySelector.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEaseProfileUpdateStrategy.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEaseRegisterCustomerStrategy.java
 C:\Users\User\Documents\GitHub\SD_ass\code\com\shopease\strategy\ShopEaseTNGStrategy.java

@@ -14,7 +14,7 @@
 |-----|--------|
 | F5  | Continue |
 | F10 | Step Over |
-| F11 | Step Into (use at `PaymentContext` line 22) |
+| F11 | Step Into (use at `PaymentContext` line 20) |
 
 ---
 
@@ -24,8 +24,8 @@
 
 | # | File | Line | Click on this line | Trigger |
 |---|------|------|--------------------|---------|
-| 1 | `code/com/shopease/singleton/ShopEaseCartSingleton.java` | **29** | `public static synchronized ShopEaseCartSingleton getInstance(String userId)` | Customer login (Sign Up or existing). Login again as same customer after adding item + logout. |
-| 2 | `code/com/shopease/singleton/ShopEaseDatabaseManager.java` | **22** | `public static ShopEaseDatabaseManager getInstance()` | F5 start app — hits immediately on startup (before login). Also hits when browsing products / DB access. |
+| 1 | `code/com/shopease/singleton/ShopEaseCartSingleton.java` | **24** | `public static synchronized ShopEaseCartSingleton getInstance(String userId) {` | Customer login (Sign Up or existing). Login again as same customer after adding item + logout. |
+| 2 | `code/com/shopease/singleton/ShopEaseDatabaseManager.java` | **24** | `public static ShopEaseDatabaseManager getInstance() {` | F5 start app — hits immediately on startup (before login). Also hits when browsing products / DB access. |
 
 **Proves:** One cart per user ID; one DB manager for all DAOs.
 
@@ -41,14 +41,14 @@ Second login: [Memory] Returning existing cart instance for user: ...
 
 | # | File | Line | Click on this line | Trigger |
 |---|------|------|--------------------|---------|
-| 3 | `code/com/shopease/ui/CartDialog.java` | **265** | `ShopEasePaymentStrategySelector.create(paymentName);` | Customer → Cart → DuitNow QR → Checkout → Yes |
-| 4 | `code/com/shopease/service/ShopEaseService.java` | **491** | `ShopEasePaymentContext context = new ShopEasePaymentContext(strategy);` | Same checkout (after confirm) |
-| 5 | `code/com/shopease/service/ShopEaseService.java` | **492** | `context.executeStrategy(total);` | F10 from line 491 |
-| 6 | `code/com/shopease/strategy/ShopEasePaymentContext.java` | **22** | `strategy.execute(amount);` | F10 from line 492 → then F11 to step into strategy |
-| 7 | `code/com/shopease/strategy/ShopEaseDuitNowStrategy.java` | **7** | `public void execute(double amount) {` | Lands here after F11 from #6 |
-| 8 *(bonus)* | `code/com/shopease/strategy/ReduceInventoryStrategy.java` | **9** | `public boolean execute(InventoryActionContext ctx, ...)` | Admin login → Inventory → Reduce (amount + remarks required) |
+| 3 | `code/com/shopease/ui/CartDialog.java` | **273** | `final ShopEasePaymentStrategy strategy = paymentStrategyFor(paymentName);` | Customer → Cart → select **DuitNow QR** → click **Pay & place order**. *(Fires immediately, before the Yes/No confirm dialog — selection now happens up front in `doCheckout()`.)* |
+| 4 | `code/com/shopease/service/ShopEaseService.java` | **492** | `ShopEasePaymentContext context = new ShopEasePaymentContext(strategy);` | Click **Yes** on the confirm dialog (runs in a background `SwingWorker` thread) |
+| 5 | `code/com/shopease/service/ShopEaseService.java` | **493** | `context.contextInterface(total);` | F10 from line 492 |
+| 6 | `code/com/shopease/strategy/ShopEasePaymentContext.java` | **20** | `strategy.algorithmInterface(amount);` | F10 from line 493 → then F11 to step into strategy |
+| 7 | `code/com/shopease/strategy/ShopEaseDuitNowStrategy.java` | **6** | `public void algorithmInterface(double amount) {` | Lands here after F11 from #6 |
+| 8 *(bonus)* | `code/com/shopease/strategy/ReduceInventoryStrategy.java` | **9** | `public boolean algorithmInterface(InventoryActionRequest request, InventoryActionResult result) {` | Admin login → Inventory → Reduce (amount + remarks required) |
 
-**Proves:** Payment and inventory use interchangeable strategy classes via `ShopEasePaymentContext`.
+**Proves:** Payment and inventory use interchangeable strategy classes (`algorithmInterface`) via `ShopEasePaymentContext` / `ShopEaseInventoryActionContext`.
 
 **Expected console (DuitNow):**
 ```
@@ -59,25 +59,28 @@ Processing Payment: RMxx.xx via DuitNow QR.
 
 ### Pattern 3 — Observer (4 breakpoints)
 
+> **Note:** the Subject/Observer base classes were refactored into a template-method style (`Subject`, `Observer`, `ShopEaseAbstractObserver`). The notify loop now lives in `Subject.java`, not in `ShopEaseInventorySubject.java`.
+
 | # | File | Line | Click on this line | Trigger |
 |---|------|------|--------------------|---------|
 | 11 | `code/com/shopease/service/ShopEaseService.java` | **99** | `inventorySystem.attach(new ShopEaseCartStockSyncObserver(userCart));` | Customer login |
-| 9  | `code/com/shopease/observer/ShopEaseInventorySubject.java` | **46** | `notifyObservers(ShopEaseAppEvents.OUT_OF_STOCK, productName);` | Admin → Inventory → Reduce to 0 (+ remarks) |
-| 10 | `code/com/shopease/observer/ShopEaseInventorySubject.java` | **28** | `for (ShopEaseInventoryObserver o : observers)` | F10 from line 46 |
-| 12 | `code/com/shopease/observer/ShopEaseCartStockSyncObserver.java` | **20** | `public void update(String event, String productName)` | *(See note below)* |
+| 9  | `code/com/shopease/observer/ShopEaseInventorySubject.java` | **36** | `notifyObservers();` *(inside the `qty == 0` branch of `setStock`)* | Admin → Inventory → Reduce to 0 (+ remarks) |
+| 10 | `code/com/shopease/observer/Subject.java` | **29** | `for (Observer observer : observers) {` | F10 from line 36 above |
+| 12 | `code/com/shopease/observer/ShopEaseCartStockSyncObserver.java` | **18** | `protected void onStateChanged(SubjectState state) {` | *(See important note below)* |
 
 **Proves:** Subject notifies observers on `OUT_OF_STOCK`; cart sync removes invalid items.
 
 **Expected console:**
 ```
 [Inventory] Gaming Laptop is now OUT OF STOCK.
-[ADMIN ALERT] ... requires immediate attention!
-[OBSERVER] SYSTEM ALERT: ... + Auto-removed '...' from your cart...
+[ADMIN ALERT] Gaming Laptop requires immediate attention!     (from ShopEaseInventoryAdminLogObserver)
+[OBSERVER] SYSTEM ALERT: Gaming Laptop is now out of stock!   (from ShopEaseCartStockSyncObserver)
+[OBSERVER] Auto-removed 'Gaming Laptop' from your cart to prevent checkout errors.
 ```
 
 > **⚠️ Important — Breakpoint #12 (cart sync observer)**
 >
-> If you logout customer → admin reduce, breakpoint #12 often will **NOT** hit because the customer's observer is detached on logout. That is OK:
+> If you logout customer → admin reduce, breakpoint #12 often will **NOT** hit. `ShopEaseService.logout()` replaces `inventorySystem` with a brand-new `ShopEaseInventorySubject()`, so the customer's observer is no longer attached to anything. That is OK:
 > - **#9 and #10** still prove Observer (subject + notify loop).
 > - Cart cleanup after re-login is handled by `syncCartWithDatabase()` in `ShopEaseService`.
 > - To hit #12 in the **same session**: customer must still be logged in when `OUT_OF_STOCK` fires (e.g. checkout that depletes stock to 0 while customer is active).
@@ -99,7 +102,7 @@ Processing Payment: RMxx.xx via DuitNow QR.
 2. Add **Gaming Laptop** to cart → do **not** checkout.
 3. Enable **#9, #10** (disable #11 if cluttered).
 4. Logout → admin login → reduce that product to **0** with remarks.
-5. F10 through line 46 → line 28.
+5. F10 through line 36 (`ShopEaseInventorySubject`) → line 29 (`Subject`).
 6. Logout → same customer login → open Cart → laptop should be gone.
 
 ---
@@ -108,11 +111,11 @@ Processing Payment: RMxx.xx via DuitNow QR.
 
 | Pattern  | File | Line | Action |
 |----------|------|------|--------|
-| Singleton | `ShopEaseCartSingleton.java` | 29 | Customer login twice |
-| Strategy  | `ShopEaseService.java` | 491–492 | DuitNow checkout |
-| Strategy  | `ShopEasePaymentContext.java` | 22 | F11 into execute |
-| Strategy  | `ShopEaseDuitNowStrategy.java` | 7 | Concrete strategy lands |
-| Observer  | `ShopEaseInventorySubject.java` | 46 | Admin reduce to 0 |
+| Singleton | `ShopEaseCartSingleton.java` | 24 | Customer login twice |
+| Strategy  | `ShopEaseService.java` | 492–493 | DuitNow checkout |
+| Strategy  | `ShopEasePaymentContext.java` | 20 | F11 into `algorithmInterface` |
+| Strategy  | `ShopEaseDuitNowStrategy.java` | 6 | Concrete strategy lands |
+| Observer  | `ShopEaseInventorySubject.java` | 36 | Admin reduce to 0 |
 
 ---
 
@@ -139,6 +142,7 @@ code/com/shopease/strategy/ShopEasePaymentContext.java
 code/com/shopease/strategy/ShopEaseDuitNowStrategy.java
 code/com/shopease/strategy/ReduceInventoryStrategy.java
 code/com/shopease/observer/ShopEaseInventorySubject.java
+code/com/shopease/observer/Subject.java
 code/com/shopease/observer/ShopEaseCartStockSyncObserver.java
 ```
 
