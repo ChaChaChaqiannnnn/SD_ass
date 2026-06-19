@@ -100,15 +100,22 @@ public class CustomerDashboard extends JPanel {
         searchField.setText(SEARCH_PLACEHOLDER);
         searchField.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusGained(java.awt.event.FocusEvent e) {
+                // Deferred via invokeLater — clearing text here rebuilds productsPanel via the
+                // DocumentListener below; doing that synchronously inside the focus event corrupts
+                // Swing's focus-traversal state and makes product card buttons stop responding.
                 if (searchField.getText().equals(SEARCH_PLACEHOLDER)) {
-                    searchField.setText("");
-                    searchField.setForeground(ShopEaseUIUtils.TEXT_PRIMARY);
+                    SwingUtilities.invokeLater(() -> {
+                        searchField.setText("");
+                        searchField.setForeground(ShopEaseUIUtils.TEXT_PRIMARY);
+                    });
                 }
             }
             public void focusLost(java.awt.event.FocusEvent e) {
                 if (searchField.getText().isEmpty()) {
-                    searchField.setForeground(ShopEaseUIUtils.TEXT_MUTED);
-                    searchField.setText(SEARCH_PLACEHOLDER);
+                    SwingUtilities.invokeLater(() -> {
+                        searchField.setForeground(ShopEaseUIUtils.TEXT_MUTED);
+                        searchField.setText(SEARCH_PLACEHOLDER);
+                    });
                 }
             }
         });
